@@ -36,3 +36,8 @@
 
 链接的格式：`[]()` 方括号里面是文字 圆括号里面是连接地址
 比如：[来吧，now，is movie time！！！](https://nunflix.com)
+
+## 图片
+
+哇哇哇哦，图片就比较刺激了，格式：`![]()`，基于连接，由感叹号开头，方括号里面是文字(在这里是图片描述) 圆括号里面是连接地址
+比如：![我的leetcode头像](https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1692271843.png)
