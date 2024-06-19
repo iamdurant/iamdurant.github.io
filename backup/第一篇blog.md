@@ -1,18 +1,10 @@
 # 借助github的博客，用于记录生活或者学习
-`int a = 1;`
-```java
-public Node find(int key){
-            int i;
-            for (i = 0;i < keyNum;i++){
-                if (keys[i] == key)
-                    return this;
-                if (keys[i] > key)
-                    break;
-            }
 
-            if (leaf)
-                return null;
+### 首先呢，要学会markdown语法，markdown语法非常强大，实在是太酷了，迫不及待要看一看它的语法了！！
 
-            return children[i].find(key);
-        }
-```
+### 标题
+>就标题来说只需在文字前面加上（# ），是的，一个#号加一个空格，后面再跟上标题即可，#号越多 标题越小
+
+### 带有背景的文本块
+只需在文本开头前加上大于号即可，即可得到炫酷的带背景的文本块
+
