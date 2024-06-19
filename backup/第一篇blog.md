@@ -74,4 +74,36 @@
 - [前端工程师](前端工程师就是。。。。 "什么是前端工程师")
 - [后端工程师](后端工程师就是。。。。 "什么是后端工程师")
 
-有人认为在[大前端时代](https://en.wikipedia.org/wiki/Front-end_web_development "Front-end web development")的背景下，移动端开发（Android、IOS）将逐步退出历史舞台。
+**靠北了，很多mardown解析器不支持脚注**
+
+
+---
+
+### 代码块
+
+重头戏环节了，代码块，单行代码块`int i = 0;`
+多行代码块：
+
+```java
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append('[');
+            for (int i = 0;i < keyNum;i++){
+                sb.append(keys[i]);
+                if (i != keyNum - 1)
+                    sb.append(',');
+            }
+            sb.append(']');
+
+            return sb.toString();
+        }
+```
+
+### 公式
+
+公式暂时用不到，或者说应该可能都用不到了，先不记录了
+
+### ending
+
+**就记录到这了，若后续还深入再继续补充**
