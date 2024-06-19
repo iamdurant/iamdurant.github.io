@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>kevin's blog</title><link>https://iamdurant.github.io</link><description>生存还是毁灭，这是一个值得考虑的问题</description><copyright>kevin's blog</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1692271843.png</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Wed, 19 Jun 2024 18:30:18 +0000</lastBuildDate><managingEditor>kevin's blog</managingEditor><ttl>60</ttl><webMaster>kevin's blog</webMaster><item><title>第一篇blog</title><link>https://iamdurant.github.io/post/di-yi-pian-blog.html</link><description># 借助github的博客，用于记录生活或者学习&#13;
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>kevin's blog</title><link>https://iamdurant.github.io</link><description>生存还是毁灭，这是一个值得考虑的问题</description><copyright>kevin's blog</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1692271843.png</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Wed, 19 Jun 2024 18:31:20 +0000</lastBuildDate><managingEditor>kevin's blog</managingEditor><ttl>60</ttl><webMaster>kevin's blog</webMaster><item><title>第一篇blog</title><link>https://iamdurant.github.io/post/di-yi-pian-blog.html</link><description># 借助github的博客，用于记录生活或者学习&#13;
 &#13;
 ### 首先呢，要学会markdown语法，markdown语法非常强大，实在是太酷了，迫不及待要看一看它的语法了！！&#13;
 &#13;
@@ -28,7 +28,7 @@
 &#13;
 ### 有序列表&#13;
 &#13;
-有序列表只需在数字或者符号后加上**.**即可**哈哈**&#13;
+有序列表只需在数字或者符号后加上`.`即可&#13;
 1. 科比&#13;
 2. 杜兰特&#13;
 3. 乔丹&#13;
