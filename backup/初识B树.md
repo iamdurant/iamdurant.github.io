@@ -65,7 +65,12 @@ static class Node {
 
 1. 将根节点作为此节点，若找到相同的key，则更新
 2. 若此节点不存在此key，则判断是否为叶子节点，若是，则插入，否则此节点更新为chiildren[i]
-3. 若插入完成后满key了，则**分裂此节点**
+3. 若插入完成后`满key`了，则**分裂此节点**
+
+#### 什么是满key
+
+> 若degree(度)为4，即最多4个孩子
+则t = 2，那么key满的个数为3，若插入新key，达到3个即为满key状态，要进行分裂
 
 #### 节点分裂
 
@@ -130,5 +135,26 @@ static class Node {
         parent.insertKey(index, node.keys[t - 1]);
         parent.insertNode(index + 1, right);
         node.keyNum = t - 1;
+    }
+```
+### B树插入代码测试
+```java
+    /**
+     * degree: 4
+     * t: 2
+     *           5            2|5
+     *         /   \   ==>   / | \
+     *      1|2|3   6       1  3  6
+     *               分裂过程
+     */
+    public static void main(String[] args) {
+        BTree bTree = new BTree(2);
+        bTree.put(1);
+        bTree.put(2);
+        bTree.put(5);
+        bTree.put(6);
+        bTree.put(3);
+
+        System.out.println();
     }
 ```
