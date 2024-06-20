@@ -84,7 +84,7 @@ static class Node {
 ### B树完整的插入代码
 
 ```java
-    public void put(int key){
+public void put(int key){
         doPut(null, 0, root, key);
     }
 
@@ -101,20 +101,19 @@ static class Node {
         if (node.leaf){
             // 插入
             node.insertKey(i, key);
-
-            if (node.keyNum == MAX_KEY_NUM){
-                // 节点分裂
-                split(parent, node, index);
-            }
         } else {
             // 递归插入
             doPut(node, i, node.children[i], key);
+        }
+
+        if (node.keyNum == MAX_KEY_NUM){
+            // 节点分裂
+            split(node, parent, index);
         }
     }
 
     private void split(Node node, Node parent, int index){
         if (parent == null){
-            // 分裂节点为root 需要构造新的root节点
             Node newRoot = new Node(t);
             newRoot.insertNode(0, node);
             newRoot.leaf = false;
@@ -126,7 +125,6 @@ static class Node {
         right.leaf = node.leaf;
         System.arraycopy(node.keys, t, right.keys, 0, t - 1);
         if (!node.leaf){
-            // 分裂节点为非叶子节点 需要移动children
             System.arraycopy(node.children, t, right.children, 0, t);
         }
 

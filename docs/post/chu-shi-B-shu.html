@@ -95,7 +95,7 @@ static class Node {
 ### B树完整的插入代码
 
 ```java
-    public void put(int key){
+public void put(int key){
         doPut(null, 0, root, key);
     }
 
@@ -112,20 +112,19 @@ static class Node {
         if (node.leaf){
             // 插入
             node.insertKey(i, key);
-
-            if (node.keyNum == MAX_KEY_NUM){
-                // 节点分裂
-                split(parent, node, index);
-            }
         } else {
             // 递归插入
             doPut(node, i, node.children[i], key);
+        }
+
+        if (node.keyNum == MAX_KEY_NUM){
+            // 节点分裂
+            split(node, parent, index);
         }
     }
 
     private void split(Node node, Node parent, int index){
         if (parent == null){
-            // 分裂节点为root 需要构造新的root节点
             Node newRoot = new Node(t);
             newRoot.insertNode(0, node);
             newRoot.leaf = false;
@@ -137,7 +136,6 @@ static class Node {
         right.leaf = node.leaf;
         System.arraycopy(node.keys, t, right.keys, 0, t - 1);
         if (!node.leaf){
-            // 分裂节点为非叶子节点 需要移动children
             System.arraycopy(node.children, t, right.children, 0, t);
         }
 
@@ -256,7 +254,7 @@ static class Node {
 ### B树完整的插入代码
 
 ```java
-    public void put(int key){
+public void put(int key){
         doPut(null, 0, root, key);
     }
 
@@ -273,20 +271,19 @@ static class Node {
         if (node.leaf){
             // 插入
             node.insertKey(i, key);
-
-            if (node.keyNum == MAX_KEY_NUM){
-                // 节点分裂
-                split(parent, node, index);
-            }
         } else {
             // 递归插入
             doPut(node, i, node.children[i], key);
+        }
+
+        if (node.keyNum == MAX_KEY_NUM){
+            // 节点分裂
+            split(node, parent, index);
         }
     }
 
     private void split(Node node, Node parent, int index){
         if (parent == null){
-            // 分裂节点为root 需要构造新的root节点
             Node newRoot = new Node(t);
             newRoot.insertNode(0, node);
             newRoot.leaf = false;
@@ -298,7 +295,6 @@ static class Node {
         right.leaf = node.leaf;
         System.arraycopy(node.keys, t, right.keys, 0, t - 1);
         if (!node.leaf){
-            // 分裂节点为非叶子节点 需要移动children
             System.arraycopy(node.children, t, right.children, 0, t);
         }
 
@@ -471,7 +467,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <p>从宏观上看节点的分裂过程，就是将索引为t-1的key移动到父节点 将索引为t之后(<strong>包括t</strong>)的key移动给新构建的right节点</p>
 </blockquote>
 <h3>B树完整的插入代码</h3>
-<div class="highlight highlight-source-java"><pre class="notranslate">    <span class="pl-k">public</span> <span class="pl-smi">void</span> <span class="pl-s1">put</span>(<span class="pl-smi">int</span> <span class="pl-s1">key</span>){
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-smi">void</span> <span class="pl-s1">put</span>(<span class="pl-smi">int</span> <span class="pl-s1">key</span>){
         <span class="pl-en">doPut</span>(<span class="pl-c1">null</span>, <span class="pl-c1">0</span>, <span class="pl-s1">root</span>, <span class="pl-s1">key</span>);
     }
 
@@ -488,20 +484,19 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
         <span class="pl-k">if</span> (<span class="pl-s1">node</span>.<span class="pl-s1">leaf</span>){
             <span class="pl-c">// 插入</span>
             <span class="pl-s1">node</span>.<span class="pl-en">insertKey</span>(<span class="pl-s1">i</span>, <span class="pl-s1">key</span>);
-
-            <span class="pl-k">if</span> (<span class="pl-s1">node</span>.<span class="pl-s1">keyNum</span> == <span class="pl-c1">MAX_KEY_NUM</span>){
-                <span class="pl-c">// 节点分裂</span>
-                <span class="pl-en">split</span>(<span class="pl-s1">parent</span>, <span class="pl-s1">node</span>, <span class="pl-s1">index</span>);
-            }
         } <span class="pl-k">else</span> {
             <span class="pl-c">// 递归插入</span>
             <span class="pl-en">doPut</span>(<span class="pl-s1">node</span>, <span class="pl-s1">i</span>, <span class="pl-s1">node</span>.<span class="pl-s1">children</span>[<span class="pl-s1">i</span>], <span class="pl-s1">key</span>);
+        }
+
+        <span class="pl-k">if</span> (<span class="pl-s1">node</span>.<span class="pl-s1">keyNum</span> == <span class="pl-c1">MAX_KEY_NUM</span>){
+            <span class="pl-c">// 节点分裂</span>
+            <span class="pl-en">split</span>(<span class="pl-s1">node</span>, <span class="pl-s1">parent</span>, <span class="pl-s1">index</span>);
         }
     }
 
     <span class="pl-k">private</span> <span class="pl-smi">void</span> <span class="pl-s1">split</span>(<span class="pl-smi">Node</span> <span class="pl-s1">node</span>, <span class="pl-smi">Node</span> <span class="pl-s1">parent</span>, <span class="pl-smi">int</span> <span class="pl-s1">index</span>){
         <span class="pl-k">if</span> (<span class="pl-s1">parent</span> == <span class="pl-c1">null</span>){
-            <span class="pl-c">// 分裂节点为root 需要构造新的root节点</span>
             <span class="pl-smi">Node</span> <span class="pl-s1">newRoot</span> = <span class="pl-k">new</span> <span class="pl-smi">Node</span>(<span class="pl-s1">t</span>);
             <span class="pl-s1">newRoot</span>.<span class="pl-en">insertNode</span>(<span class="pl-c1">0</span>, <span class="pl-s1">node</span>);
             <span class="pl-s1">newRoot</span>.<span class="pl-s1">leaf</span> = <span class="pl-c1">false</span>;
@@ -513,7 +508,6 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
         <span class="pl-s1">right</span>.<span class="pl-s1">leaf</span> = <span class="pl-s1">node</span>.<span class="pl-s1">leaf</span>;
         <span class="pl-smi">System</span>.<span class="pl-en">arraycopy</span>(<span class="pl-s1">node</span>.<span class="pl-s1">keys</span>, <span class="pl-s1">t</span>, <span class="pl-s1">right</span>.<span class="pl-s1">keys</span>, <span class="pl-c1">0</span>, <span class="pl-s1">t</span> - <span class="pl-c1">1</span>);
         <span class="pl-k">if</span> (!<span class="pl-s1">node</span>.<span class="pl-s1">leaf</span>){
-            <span class="pl-c">// 分裂节点为非叶子节点 需要移动children</span>
             <span class="pl-smi">System</span>.<span class="pl-en">arraycopy</span>(<span class="pl-s1">node</span>.<span class="pl-s1">children</span>, <span class="pl-s1">t</span>, <span class="pl-s1">right</span>.<span class="pl-s1">children</span>, <span class="pl-c1">0</span>, <span class="pl-s1">t</span>);
         }
 
