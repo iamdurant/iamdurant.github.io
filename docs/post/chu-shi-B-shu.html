@@ -163,16 +163,25 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
         }
     }</pre></div>
 <h3>key的插入</h3>
-<ol>
-<li>将根节点作为此节点，若找到相同的key，则更新</li>
-<li>若此节点不存在此key，则判断是否为叶子节点，若是，则插入，否则此节点更新为chiildren[i]</li>
-<li>若插入完成后<code class="notranslate">满key</code>了，则<strong>分裂此节点</strong></li>
-</ol>
-<h4>什么是满key</h4>
-<blockquote>
-<p>若degree(度)为4，即最多4个孩子<br>
-则t = 2，那么key满的个数为3，若插入新key，达到3个即为满key状态，要进行分裂</p>
-</blockquote>
+<ul>
+<li>递归查找
+<ul>
+<li>非叶子节点
+<ul>
+<li>若存在相等的key，则更新</li>
+<li>若不存在相等的key，继续递归</li>
+</ul>
+</li>
+<li>叶子节点
+<ul>
+<li>若存在相等的key，则更新</li>
+<li>若不存在相等的key，则执行插入</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>归向上判断节点键数量是否 &gt; MAX_KEY_NUM，若大于，则分裂</li>
+</ul>
 <h4>节点分裂</h4>
 <ol>
 <li>创建新的节点，将大&gt;=t索引的key与children移动到此新节点，<strong>特殊情况：</strong><code class="notranslate">若分裂节点为根节点，则除了构建一个right节点以外，还需构建一个新根节点</code></li>
