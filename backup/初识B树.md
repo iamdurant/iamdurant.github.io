@@ -316,7 +316,7 @@ public class BTree {
         this.t = t;
         root = new Node(t);
         MIN_KEY_NUM = t - 1;
-        MAX_KEY_NUM = 2 * t;            // 这个MAX_KEY_NUM 实际上应该为 2 * t - 1 但是新增代码中写错了判断条件 不想改新增代码，就改这里了
+        MAX_KEY_NUM = 2 * t;            
     }
 
     /**
