@@ -3,7 +3,7 @@
 > - 几阶B树即代表最多能有多少个孩子，除叶子节点以外，节点的孩子不少于`阶数/2`
 > - 那么除叶子节点以外，节点key的数量范围为`阶数/2 - 1 到 阶数 - 1`
 
-### B树的节点实现，静态内部类，`简单设计，并不考虑Object，只有key`
+### B树的节点实现，静态内部类，简化设计，不考虑Object，只有key
 
 ```java
 static class Node {
@@ -81,7 +81,7 @@ static class Node {
 
 > 从宏观上看节点的分裂过程，就是将索引为t-1的key移动到父节点 将索引为t之后(**包括t**)的key移动给新构建的right节点
 
-### B树完整的插入代码
+#### B树完整的插入代码
 
 ```java
 public void put(int key){
@@ -135,7 +135,7 @@ public void put(int key){
         node.keyNum = t - 1;
     }
 ```
-### B树插入代码测试
+#### B树插入代码测试
 ```java
     /**
      * degree: 4
@@ -156,3 +156,117 @@ public void put(int key){
         System.out.println();
     }
 ```
+
+---
+
+### key的删除
+
+相对来说，删除key比插入key复杂的多，开始之间，先在Node节点类添加9个辅助方法（直接调用），让删除key的逻辑更加清晰：
+
+>- `删除指定index的key并返回`
+
+```java
+public int removeKey(int index){
+    int re = keys[index];
+    System.arraycopy(keys, index + 1, keys, index, keyNum - index - 1);
+    return re;
+}
+```
+
+>- `移除最左边的key并返回`
+
+```java
+public int removeKey(int index){
+    int re = keys[index];
+    System.arraycopy(keys, index + 1, keys, index, keyNum - index - 1);
+    return re;
+}
+```
+
+>- `移除最右边的key并返回`
+
+```java
+public int removeRightestKey(){
+    int re = keys[keyNum - 1];
+    return re;
+}
+```
+
+>- `移除指定index的child并返回`
+
+```java
+public Node removeChild(int index){
+    Node re = children[index];
+    System.arraycopy(children, index + 1, children, index, keyNum - index - 1);
+    return re;
+}
+```
+
+>- `移除最左边child并返回`
+
+```java
+public Node removeLeftestChild(){
+     Node re = children[0];
+     System.arraycopy(children, 1, children, 0, keyNum - 1);
+     return re;
+}
+```
+
+>- `移除最右边的child并返回`
+
+```java
+public Node removeRightestChild(){
+     Node re = children[keyNum - 1];
+     return re;
+}
+```
+
+>- `获取指定index的左兄弟`
+
+```java
+public Node leftBrother(int index){
+    return index > 0 ? children[index - 1] : null;
+}
+```
+
+>- `获取指定index的右兄弟`
+
+```java
+public Node rightBrother(int index){
+    return index == keyNum ? null : children[index + 1];
+}
+```
+
+>- `将节点的所有key与child移动到指定节点`
+
+```java
+public void removeNode(Node target){
+    int start = target.keyNum;
+    if (keyNum >= 0) System.arraycopy(keys, 0, target.keys, start, keyNum);
+    if (!leaf){
+        if (keyNum >= 0) System.arraycopy(children, 0, target.children, start, keyNum);
+    }
+}
+```
+
+#### 删除key的各种case
+
+- 若节点为叶子节点
+  - 存在指定key，直接返回
+  - 不存在指定key，删除操作
+- 若节点为非叶子节点
+  - 不存在指定key，递归删除
+  - 存在指定key，找到后继key，与后继key交换，删除后继key（相当于限定了删除操作只能在叶子节点进行）
+- 删除上述操作完成后，归向上判断是否需要合并（key数 < t - 1）
+
+#### 合并操作
+
+- 根节点
+  - 哈哈
+  - 哈哈
+- 非根节点
+  - 哈哈
+  - 哈哈
+
+
+
