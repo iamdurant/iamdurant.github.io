@@ -282,7 +282,10 @@ public void removeNode(Node target){
   - 无法通过旋转恢复平衡，则合并（都采用左合并）
     - 若不平衡节点存在左兄弟，向左兄弟合并（若`parent.childre[i + 1] == 此不平衡node`，则将`parent.children[i]`以及整个不平衡节点合并到左兄弟）
     - 若不平衡节点不存在左兄弟，则将右兄弟合并到不平衡节点（若`parent.childre[i + 1] == 此不平衡node的右兄弟`，则将`parent.children[i]`以及整个不平衡节点的右兄弟合并到不平衡节点）
-。">
+
+### 完整的B树代码
+
+> 不单独贴B树的删除代码了，删除的逻辑已在上方给出。">
 <meta property="og:title" content="初识B树">
 <meta property="og:description" content="### B树的degree(阶数)
 
@@ -557,7 +560,10 @@ public void removeNode(Node target){
   - 无法通过旋转恢复平衡，则合并（都采用左合并）
     - 若不平衡节点存在左兄弟，向左兄弟合并（若`parent.childre[i + 1] == 此不平衡node`，则将`parent.children[i]`以及整个不平衡节点合并到左兄弟）
     - 若不平衡节点不存在左兄弟，则将右兄弟合并到不平衡节点（若`parent.childre[i + 1] == 此不平衡node的右兄弟`，则将`parent.children[i]`以及整个不平衡节点的右兄弟合并到不平衡节点）
-。">
+
+### 完整的B树代码
+
+> 不单独贴B树的删除代码了，删除的逻辑已在上方给出。">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://iamdurant.github.io/post/chu-shi-B-shu.html">
 <meta property="og:image" content="https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1692271843.png">
@@ -897,7 +903,305 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 </li>
 </ul>
 </li>
-</ul></div>
+</ul>
+<h3>完整的B树代码</h3>
+<blockquote>
+<p>不单独贴B树的删除代码了，删除的逻辑已在上方给出。下方代码已经过测试，没有问题。</p>
+</blockquote>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-smi">BTree</span> {
+    <span class="pl-k">private</span> <span class="pl-smi">Node</span> <span class="pl-s1">root</span>;              <span class="pl-c">// root node</span>
+    <span class="pl-k">private</span> <span class="pl-k">final</span> <span class="pl-smi">int</span> <span class="pl-s1">t</span>;            <span class="pl-c">// minDegree</span>
+    <span class="pl-k">private</span> <span class="pl-k">final</span> <span class="pl-smi">int</span> <span class="pl-c1">MIN_KEY_NUM</span>;
+    <span class="pl-k">private</span> <span class="pl-k">final</span> <span class="pl-smi">int</span> <span class="pl-c1">MAX_KEY_NUM</span>;
+
+    <span class="pl-k">public</span> <span class="pl-smi">BTree</span>(){
+        <span class="pl-smi">this</span>(<span class="pl-c1">2</span>);
+    }
+
+    <span class="pl-k">public</span> <span class="pl-smi">BTree</span>(<span class="pl-smi">int</span> <span class="pl-s1">t</span>){
+        <span class="pl-smi">this</span>.<span class="pl-s1">t</span> = <span class="pl-s1">t</span>;
+        <span class="pl-s1">root</span> = <span class="pl-k">new</span> <span class="pl-smi">Node</span>(<span class="pl-s1">t</span>);
+        <span class="pl-c1">MIN_KEY_NUM</span> = <span class="pl-s1">t</span> - <span class="pl-c1">1</span>;
+        <span class="pl-c1">MAX_KEY_NUM</span> = <span class="pl-c1">2</span> * <span class="pl-s1">t</span>;            <span class="pl-c">// 这个MAX_KEY_NUM 在满叔的设计里是 2 * t - 1，key的数量范围为[t - 1, 2 * t - 1]，在满叔的设计里（[t - 1, 2 * t - 1)），不包括右边了，我查阅了一下，右边也是闭区间</span>
+    }
+
+    <span class="pl-c">/**</span>
+<span class="pl-c">     * 判断B树中是否存在指定key</span>
+<span class="pl-c">     * @param key</span>
+<span class="pl-c">     * @return</span>
+<span class="pl-c">     */</span>
+    <span class="pl-k">public</span> <span class="pl-smi">boolean</span> <span class="pl-en">contains</span>(<span class="pl-smi">int</span> <span class="pl-s1">key</span>){
+        <span class="pl-k">return</span> <span class="pl-s1">root</span>.<span class="pl-en">find</span>(<span class="pl-s1">key</span>) != <span class="pl-c1">null</span>;
+    }
+
+    <span class="pl-k">public</span> <span class="pl-smi">void</span> <span class="pl-en">put</span>(<span class="pl-smi">int</span> <span class="pl-s1">key</span>){
+        <span class="pl-en">doPut</span>(<span class="pl-c1">null</span>, <span class="pl-c1">0</span>, <span class="pl-s1">root</span>, <span class="pl-s1">key</span>);
+    }
+
+    <span class="pl-k">private</span> <span class="pl-smi">void</span> <span class="pl-en">doPut</span>(<span class="pl-smi">Node</span> <span class="pl-s1">parent</span>, <span class="pl-smi">int</span> <span class="pl-s1">index</span>, <span class="pl-smi">Node</span> <span class="pl-s1">node</span>, <span class="pl-smi">int</span> <span class="pl-s1">key</span>){
+        <span class="pl-smi">int</span> <span class="pl-s1">i</span> = <span class="pl-c1">0</span>;
+        <span class="pl-k">while</span> (<span class="pl-s1">i</span> &lt; <span class="pl-s1">node</span>.<span class="pl-s1">keyNum</span>){
+            <span class="pl-k">if</span> (<span class="pl-s1">key</span> == <span class="pl-s1">node</span>.<span class="pl-s1">keys</span>[<span class="pl-s1">i</span>])
+                <span class="pl-k">return</span>;
+            <span class="pl-k">if</span> (<span class="pl-s1">key</span> &lt; <span class="pl-s1">node</span>.<span class="pl-s1">keys</span>[<span class="pl-s1">i</span>])
+                <span class="pl-k">break</span>;
+            <span class="pl-s1">i</span>++;
+        }
+
+        <span class="pl-k">if</span> (<span class="pl-s1">node</span>.<span class="pl-s1">leaf</span>){
+            <span class="pl-c">// 插入</span>
+            <span class="pl-s1">node</span>.<span class="pl-en">insertKey</span>(<span class="pl-s1">i</span>, <span class="pl-s1">key</span>);
+        } <span class="pl-k">else</span> {
+            <span class="pl-c">// 递归插入</span>
+            <span class="pl-en">doPut</span>(<span class="pl-s1">node</span>, <span class="pl-s1">i</span>, <span class="pl-s1">node</span>.<span class="pl-s1">children</span>[<span class="pl-s1">i</span>], <span class="pl-s1">key</span>);
+        }
+
+        <span class="pl-k">if</span> (<span class="pl-s1">node</span>.<span class="pl-s1">keyNum</span> == <span class="pl-c1">MAX_KEY_NUM</span>){
+            <span class="pl-c">// 节点分裂</span>
+            <span class="pl-en">split</span>(<span class="pl-s1">node</span>, <span class="pl-s1">parent</span>, <span class="pl-s1">index</span>);
+        }
+    }
+
+    <span class="pl-k">private</span> <span class="pl-smi">void</span> <span class="pl-en">split</span>(<span class="pl-smi">Node</span> <span class="pl-s1">node</span>, <span class="pl-smi">Node</span> <span class="pl-s1">parent</span>, <span class="pl-smi">int</span> <span class="pl-s1">index</span>){
+        <span class="pl-k">if</span> (<span class="pl-s1">parent</span> == <span class="pl-c1">null</span>){
+            <span class="pl-smi">Node</span> <span class="pl-s1">newRoot</span> = <span class="pl-k">new</span> <span class="pl-smi">Node</span>(<span class="pl-s1">t</span>);
+            <span class="pl-s1">newRoot</span>.<span class="pl-en">insertNode</span>(<span class="pl-c1">0</span>, <span class="pl-s1">node</span>);
+            <span class="pl-s1">newRoot</span>.<span class="pl-s1">leaf</span> = <span class="pl-c1">false</span>;
+            <span class="pl-s1">parent</span> = <span class="pl-s1">newRoot</span>;
+            <span class="pl-s1">root</span> = <span class="pl-s1">newRoot</span>;
+        }
+
+        <span class="pl-smi">Node</span> <span class="pl-s1">right</span> = <span class="pl-k">new</span> <span class="pl-smi">Node</span>(<span class="pl-s1">t</span>);
+        <span class="pl-s1">right</span>.<span class="pl-s1">leaf</span> = <span class="pl-s1">node</span>.<span class="pl-s1">leaf</span>;
+        <span class="pl-smi">System</span>.<span class="pl-en">arraycopy</span>(<span class="pl-s1">node</span>.<span class="pl-s1">keys</span>, <span class="pl-s1">t</span>, <span class="pl-s1">right</span>.<span class="pl-s1">keys</span>, <span class="pl-c1">0</span>, <span class="pl-s1">t</span> - <span class="pl-c1">1</span>);
+        <span class="pl-k">if</span> (!<span class="pl-s1">node</span>.<span class="pl-s1">leaf</span>){
+            <span class="pl-smi">System</span>.<span class="pl-en">arraycopy</span>(<span class="pl-s1">node</span>.<span class="pl-s1">children</span>, <span class="pl-s1">t</span>, <span class="pl-s1">right</span>.<span class="pl-s1">children</span>, <span class="pl-c1">0</span>, <span class="pl-s1">t</span>);
+        }
+
+        <span class="pl-s1">right</span>.<span class="pl-s1">keyNum</span> = <span class="pl-s1">t</span> - <span class="pl-c1">1</span>;
+
+        <span class="pl-s1">parent</span>.<span class="pl-en">insertKey</span>(<span class="pl-s1">index</span>, <span class="pl-s1">node</span>.<span class="pl-s1">keys</span>[<span class="pl-s1">t</span> - <span class="pl-c1">1</span>]);
+        <span class="pl-s1">parent</span>.<span class="pl-en">insertNode</span>(<span class="pl-s1">index</span> + <span class="pl-c1">1</span>, <span class="pl-s1">right</span>);
+        <span class="pl-s1">node</span>.<span class="pl-s1">keyNum</span> = <span class="pl-s1">t</span> - <span class="pl-c1">1</span>;
+    }
+
+    <span class="pl-c">/**</span>
+<span class="pl-c">     *</span>
+<span class="pl-c">     * @param key</span>
+<span class="pl-c">     */</span>
+    <span class="pl-k">public</span> <span class="pl-smi">void</span> <span class="pl-en">remove</span>(<span class="pl-smi">int</span> <span class="pl-s1">key</span>){
+        <span class="pl-en">doRemove</span>(<span class="pl-s1">root</span>, <span class="pl-c1">null</span>, <span class="pl-c1">0</span>, <span class="pl-s1">key</span>);
+    }
+
+    <span class="pl-k">private</span> <span class="pl-smi">void</span> <span class="pl-en">doRemove</span>(<span class="pl-smi">Node</span> <span class="pl-s1">node</span>, <span class="pl-smi">Node</span> <span class="pl-s1">parent</span>, <span class="pl-smi">int</span> <span class="pl-s1">which</span>, <span class="pl-smi">int</span> <span class="pl-s1">key</span>){
+        <span class="pl-smi">int</span> <span class="pl-s1">i</span> = <span class="pl-c1">0</span>;
+        <span class="pl-k">while</span> (<span class="pl-s1">i</span> &lt; <span class="pl-s1">node</span>.<span class="pl-s1">keyNum</span>){
+            <span class="pl-k">if</span> (<span class="pl-s1">key</span> == <span class="pl-s1">node</span>.<span class="pl-s1">keys</span>[<span class="pl-s1">i</span>]){
+                <span class="pl-k">break</span>;
+            }
+            <span class="pl-k">if</span> (<span class="pl-s1">key</span> &lt; <span class="pl-s1">node</span>.<span class="pl-s1">keys</span>[<span class="pl-s1">i</span>])
+                <span class="pl-k">break</span>;
+            <span class="pl-s1">i</span>++;
+        }
+
+        <span class="pl-k">if</span> (<span class="pl-s1">node</span>.<span class="pl-s1">leaf</span>){
+            <span class="pl-k">if</span> (<span class="pl-s1">node</span>.<span class="pl-s1">keys</span>[<span class="pl-s1">i</span>] != <span class="pl-s1">key</span>){
+                <span class="pl-k">return</span>;
+            } <span class="pl-k">else</span> {
+                <span class="pl-c">// 叶子节点 进行删除</span>
+                <span class="pl-s1">node</span>.<span class="pl-en">removeKey</span>(<span class="pl-s1">i</span>);
+            }
+        } <span class="pl-k">else</span> {
+            <span class="pl-k">if</span> (<span class="pl-s1">node</span>.<span class="pl-s1">keys</span>[<span class="pl-s1">i</span>] != <span class="pl-s1">key</span>){
+                <span class="pl-en">doRemove</span>(<span class="pl-s1">node</span>.<span class="pl-s1">children</span>[<span class="pl-s1">i</span>], <span class="pl-s1">node</span>, <span class="pl-s1">i</span>, <span class="pl-s1">key</span>);
+            } <span class="pl-k">else</span> {
+                <span class="pl-c">// 非叶子节点 找到后继key 交换key 删除后继key</span>
+                <span class="pl-smi">Node</span> <span class="pl-s1">right</span> = <span class="pl-s1">node</span>.<span class="pl-s1">children</span>[<span class="pl-s1">i</span> + <span class="pl-c1">1</span>];
+                <span class="pl-k">while</span> (<span class="pl-s1">right</span>.<span class="pl-s1">children</span>[<span class="pl-c1">0</span>] != <span class="pl-c1">null</span>){
+                    <span class="pl-s1">right</span> = <span class="pl-s1">right</span>.<span class="pl-s1">children</span>[<span class="pl-c1">0</span>];
+                }
+
+                <span class="pl-s1">node</span>.<span class="pl-s1">keys</span>[<span class="pl-s1">i</span>] = <span class="pl-s1">right</span>.<span class="pl-s1">keys</span>[<span class="pl-c1">0</span>];
+
+                <span class="pl-en">doRemove</span>(<span class="pl-s1">node</span>.<span class="pl-s1">children</span>[<span class="pl-s1">i</span> + <span class="pl-c1">1</span>], <span class="pl-s1">node</span>, <span class="pl-s1">i</span> + <span class="pl-c1">1</span>, <span class="pl-s1">right</span>.<span class="pl-s1">keys</span>[<span class="pl-c1">0</span>]);
+            }
+        }
+
+        <span class="pl-k">if</span> (<span class="pl-s1">node</span>.<span class="pl-s1">keyNum</span> &lt; <span class="pl-c1">MIN_KEY_NUM</span>){
+            <span class="pl-c">// 失衡</span>
+            <span class="pl-en">merge</span>(<span class="pl-s1">node</span>, <span class="pl-s1">parent</span>, <span class="pl-s1">which</span>);
+        }
+    }
+
+    <span class="pl-k">private</span> <span class="pl-smi">void</span> <span class="pl-en">merge</span>(<span class="pl-smi">Node</span> <span class="pl-s1">node</span>, <span class="pl-smi">Node</span> <span class="pl-s1">parent</span>, <span class="pl-smi">int</span> <span class="pl-s1">index</span>){
+        <span class="pl-k">if</span> (<span class="pl-s1">root</span> == <span class="pl-s1">node</span>){
+            <span class="pl-c">// node == root 情况</span>
+            <span class="pl-k">if</span> (<span class="pl-s1">root</span>.<span class="pl-s1">keyNum</span> == <span class="pl-c1">0</span> &amp;&amp; <span class="pl-s1">root</span>.<span class="pl-s1">children</span>[<span class="pl-c1">0</span>] != <span class="pl-c1">null</span>)
+                <span class="pl-s1">root</span> = <span class="pl-s1">root</span>.<span class="pl-s1">children</span>[<span class="pl-c1">0</span>];
+            <span class="pl-k">return</span>;
+        }
+
+        <span class="pl-smi">Node</span> <span class="pl-s1">leftBrother</span> = <span class="pl-s1">parent</span>.<span class="pl-en">leftBrother</span>(<span class="pl-s1">index</span>);
+        <span class="pl-k">if</span> (<span class="pl-s1">leftBrother</span> != <span class="pl-c1">null</span> &amp;&amp; <span class="pl-s1">leftBrother</span>.<span class="pl-s1">keyNum</span> &gt; <span class="pl-c1">MIN_KEY_NUM</span>){
+            <span class="pl-c">// 右旋</span>
+            <span class="pl-smi">int</span> <span class="pl-s1">left</span> = <span class="pl-s1">leftBrother</span>.<span class="pl-en">removeRightestKey</span>();
+            <span class="pl-smi">int</span> <span class="pl-s1">mid</span> = <span class="pl-s1">parent</span>.<span class="pl-s1">keys</span>[<span class="pl-s1">index</span> - <span class="pl-c1">1</span>];
+            <span class="pl-s1">parent</span>.<span class="pl-s1">keys</span>[<span class="pl-s1">index</span> - <span class="pl-c1">1</span>] = <span class="pl-s1">left</span>;
+            <span class="pl-s1">node</span>.<span class="pl-en">insertKey</span>(<span class="pl-c1">0</span>, <span class="pl-s1">mid</span>);
+
+            <span class="pl-k">if</span> (!<span class="pl-s1">leftBrother</span>.<span class="pl-s1">leaf</span>){
+                <span class="pl-c">// 非叶子节点情况</span>
+                <span class="pl-smi">Node</span> <span class="pl-s1">rightestChild</span> = <span class="pl-s1">leftBrother</span>.<span class="pl-en">removeRightestChild</span>();
+                <span class="pl-s1">node</span>.<span class="pl-en">insertNode</span>(<span class="pl-c1">0</span>, <span class="pl-s1">rightestChild</span>);
+            }
+
+            <span class="pl-k">return</span>;
+        }
+
+        <span class="pl-smi">Node</span> <span class="pl-s1">rightBrother</span> = <span class="pl-s1">parent</span>.<span class="pl-en">rightBrother</span>(<span class="pl-s1">index</span>);
+        <span class="pl-k">if</span> (<span class="pl-s1">rightBrother</span> != <span class="pl-c1">null</span> &amp;&amp; <span class="pl-s1">rightBrother</span>.<span class="pl-s1">keyNum</span> &gt; <span class="pl-c1">MIN_KEY_NUM</span>){
+            <span class="pl-c">// 左旋</span>
+            <span class="pl-smi">int</span> <span class="pl-s1">right</span> = <span class="pl-s1">rightBrother</span>.<span class="pl-en">removeLeftestKey</span>();
+            <span class="pl-smi">int</span> <span class="pl-s1">mid</span> = <span class="pl-s1">parent</span>.<span class="pl-s1">keys</span>[<span class="pl-s1">index</span>];
+            <span class="pl-s1">parent</span>.<span class="pl-s1">keys</span>[<span class="pl-s1">index</span>] = <span class="pl-s1">right</span>;
+            <span class="pl-s1">node</span>.<span class="pl-en">insertKey</span>(<span class="pl-s1">node</span>.<span class="pl-s1">keyNum</span>, <span class="pl-s1">mid</span>);
+
+            <span class="pl-k">if</span> (!<span class="pl-s1">rightBrother</span>.<span class="pl-s1">leaf</span>){
+                <span class="pl-c">// 非叶子节点情况</span>
+                <span class="pl-smi">Node</span> <span class="pl-s1">leftestChild</span> = <span class="pl-s1">rightBrother</span>.<span class="pl-en">removeLeftestChild</span>();
+                <span class="pl-s1">node</span>.<span class="pl-en">insertNode</span>(<span class="pl-s1">node</span>.<span class="pl-s1">keyNum</span> + <span class="pl-c1">1</span>, <span class="pl-s1">leftestChild</span>);
+            }
+
+            <span class="pl-k">return</span>;
+        }
+
+        <span class="pl-k">if</span> (<span class="pl-s1">leftBrother</span> != <span class="pl-c1">null</span>){
+            <span class="pl-c">// 不平衡节点向左兄弟合并</span>
+            <span class="pl-s1">parent</span>.<span class="pl-en">removeChild</span>(<span class="pl-s1">index</span>);
+            <span class="pl-s1">leftBrother</span>.<span class="pl-en">insertKey</span>(<span class="pl-s1">leftBrother</span>.<span class="pl-s1">keyNum</span>, <span class="pl-s1">parent</span>.<span class="pl-en">removeKey</span>(<span class="pl-s1">index</span> - <span class="pl-c1">1</span>));
+            <span class="pl-s1">node</span>.<span class="pl-en">removeNode</span>(<span class="pl-s1">leftBrother</span>);
+        } <span class="pl-k">else</span> <span class="pl-k">if</span> (<span class="pl-s1">rightBrother</span> != <span class="pl-c1">null</span>){
+            <span class="pl-c">// 不平衡节点的右兄弟向不平衡节点合并</span>
+            <span class="pl-s1">parent</span>.<span class="pl-en">removeChild</span>(<span class="pl-s1">index</span> + <span class="pl-c1">1</span>);
+            <span class="pl-s1">node</span>.<span class="pl-en">insertKey</span>(<span class="pl-s1">node</span>.<span class="pl-s1">keyNum</span>, <span class="pl-s1">parent</span>.<span class="pl-en">removeKey</span>(<span class="pl-s1">index</span>));
+            <span class="pl-s1">rightBrother</span>.<span class="pl-en">removeNode</span>(<span class="pl-s1">node</span>);
+        }
+    }
+
+    <span class="pl-k">static</span> <span class="pl-k">class</span> <span class="pl-smi">Node</span> {
+        <span class="pl-smi">int</span>[] <span class="pl-s1">keys</span>;             <span class="pl-c">// key for compare</span>
+        <span class="pl-smi">Node</span>[] <span class="pl-s1">children</span>;        <span class="pl-c">// children pointer</span>
+        <span class="pl-smi">int</span> <span class="pl-s1">keyNum</span>;             <span class="pl-c">// key size</span>
+        <span class="pl-smi">boolean</span> <span class="pl-s1">leaf</span> = <span class="pl-c1">true</span>;    <span class="pl-c">// leaf or not</span>
+        <span class="pl-smi">int</span> <span class="pl-s1">t</span>;                  <span class="pl-c">// minDegree</span>
+
+        <span class="pl-k">public</span> <span class="pl-smi">Node</span>(<span class="pl-smi">int</span> <span class="pl-s1">minDegree</span>){
+            <span class="pl-smi">this</span>.<span class="pl-s1">t</span> = <span class="pl-s1">minDegree</span>;
+            <span class="pl-s1">keys</span> = <span class="pl-k">new</span> <span class="pl-smi">int</span>[<span class="pl-c1">2</span> * <span class="pl-s1">t</span>];
+            <span class="pl-s1">children</span> = <span class="pl-k">new</span> <span class="pl-smi">Node</span>[<span class="pl-c1">2</span> * <span class="pl-s1">t</span>];
+        }
+
+        <span class="pl-c">/**</span>
+<span class="pl-c">         *</span>
+<span class="pl-c">         * @param index</span>
+<span class="pl-c">         * @return</span>
+<span class="pl-c">         */</span>
+        <span class="pl-k">public</span> <span class="pl-smi">int</span> <span class="pl-en">removeKey</span>(<span class="pl-smi">int</span> <span class="pl-s1">index</span>){
+            <span class="pl-smi">int</span> <span class="pl-s1">re</span> = <span class="pl-s1">keys</span>[<span class="pl-s1">index</span>];
+            <span class="pl-smi">System</span>.<span class="pl-en">arraycopy</span>(<span class="pl-s1">keys</span>, <span class="pl-s1">index</span> + <span class="pl-c1">1</span>, <span class="pl-s1">keys</span>, <span class="pl-s1">index</span>, --<span class="pl-s1">keyNum</span> - <span class="pl-s1">index</span>);
+            <span class="pl-k">return</span> <span class="pl-s1">re</span>;
+        }
+
+        <span class="pl-c">/**</span>
+<span class="pl-c">         *</span>
+<span class="pl-c">         * @return</span>
+<span class="pl-c">         */</span>
+        <span class="pl-k">public</span> <span class="pl-smi">int</span> <span class="pl-en">removeLeftestKey</span>(){
+            <span class="pl-k">return</span> <span class="pl-en">removeKey</span>(<span class="pl-c1">0</span>);
+        }
+
+        <span class="pl-c">/**</span>
+<span class="pl-c">         *</span>
+<span class="pl-c">         * @return</span>
+<span class="pl-c">         */</span>
+        <span class="pl-k">public</span> <span class="pl-smi">int</span> <span class="pl-en">removeRightestKey</span>(){
+            <span class="pl-k">return</span> <span class="pl-en">removeKey</span>(<span class="pl-s1">keyNum</span> - <span class="pl-c1">1</span>);
+        }
+
+        <span class="pl-k">public</span> <span class="pl-smi">Node</span> <span class="pl-en">removeChild</span>(<span class="pl-smi">int</span> <span class="pl-s1">index</span>){
+            <span class="pl-smi">Node</span> <span class="pl-s1">re</span> = <span class="pl-s1">children</span>[<span class="pl-s1">index</span>];
+            <span class="pl-smi">System</span>.<span class="pl-en">arraycopy</span>(<span class="pl-s1">children</span>, <span class="pl-s1">index</span> + <span class="pl-c1">1</span>, <span class="pl-s1">children</span>, <span class="pl-s1">index</span>, <span class="pl-s1">keyNum</span> - <span class="pl-s1">index</span>);
+            <span class="pl-k">return</span> <span class="pl-s1">re</span>;
+        }
+
+        <span class="pl-k">public</span> <span class="pl-smi">Node</span> <span class="pl-en">removeLeftestChild</span>(){
+            <span class="pl-k">return</span> <span class="pl-en">removeChild</span>(<span class="pl-c1">0</span>);
+        }
+
+        <span class="pl-k">public</span> <span class="pl-smi">Node</span> <span class="pl-en">removeRightestChild</span>(){
+            <span class="pl-k">return</span> <span class="pl-en">removeChild</span>(<span class="pl-s1">keyNum</span>);
+        }
+
+        <span class="pl-k">public</span> <span class="pl-smi">Node</span> <span class="pl-en">leftBrother</span>(<span class="pl-smi">int</span> <span class="pl-s1">index</span>){
+            <span class="pl-k">return</span> <span class="pl-s1">index</span> &gt; <span class="pl-c1">0</span> ? <span class="pl-s1">children</span>[<span class="pl-s1">index</span> - <span class="pl-c1">1</span>] : <span class="pl-c1">null</span>;
+        }
+
+        <span class="pl-k">public</span> <span class="pl-smi">Node</span> <span class="pl-en">rightBrother</span>(<span class="pl-smi">int</span> <span class="pl-s1">index</span>){
+            <span class="pl-k">return</span> <span class="pl-s1">index</span> == <span class="pl-s1">keyNum</span> ? <span class="pl-c1">null</span> : <span class="pl-s1">children</span>[<span class="pl-s1">index</span> + <span class="pl-c1">1</span>];
+        }
+
+        <span class="pl-k">public</span> <span class="pl-smi">void</span> <span class="pl-en">removeNode</span>(<span class="pl-smi">Node</span> <span class="pl-s1">target</span>){
+            <span class="pl-smi">int</span> <span class="pl-s1">start</span> = <span class="pl-s1">target</span>.<span class="pl-s1">keyNum</span>;
+            <span class="pl-k">if</span> (!<span class="pl-s1">leaf</span>){
+                <span class="pl-k">if</span> (<span class="pl-s1">keyNum</span> + <span class="pl-c1">1</span> &gt;= <span class="pl-c1">0</span>) <span class="pl-smi">System</span>.<span class="pl-en">arraycopy</span>(<span class="pl-s1">children</span>, <span class="pl-c1">0</span>, <span class="pl-s1">target</span>.<span class="pl-s1">children</span>, <span class="pl-s1">start</span>, <span class="pl-s1">keyNum</span> + <span class="pl-c1">1</span>);
+            }
+
+            <span class="pl-k">for</span> (<span class="pl-smi">int</span> <span class="pl-s1">i</span> = <span class="pl-c1">0</span>; <span class="pl-s1">i</span> &lt; <span class="pl-s1">keyNum</span>; <span class="pl-s1">i</span>++) {
+                <span class="pl-s1">target</span>.<span class="pl-s1">keys</span>[<span class="pl-s1">target</span>.<span class="pl-s1">keyNum</span>++] = <span class="pl-s1">keys</span>[<span class="pl-s1">i</span>];
+            }
+        }
+
+        <span class="pl-k">public</span> <span class="pl-smi">Node</span> <span class="pl-en">find</span>(<span class="pl-smi">int</span> <span class="pl-s1">key</span>){
+            <span class="pl-smi">int</span> <span class="pl-s1">i</span>;
+            <span class="pl-k">for</span> (<span class="pl-s1">i</span> = <span class="pl-c1">0</span>;<span class="pl-s1">i</span> &lt; <span class="pl-s1">keyNum</span>;<span class="pl-s1">i</span>++){
+                <span class="pl-k">if</span> (<span class="pl-s1">keys</span>[<span class="pl-s1">i</span>] == <span class="pl-s1">key</span>)
+                    <span class="pl-k">return</span> <span class="pl-smi">this</span>;
+                <span class="pl-k">if</span> (<span class="pl-s1">keys</span>[<span class="pl-s1">i</span>] &gt; <span class="pl-s1">key</span>)
+                    <span class="pl-k">break</span>;
+            }
+
+            <span class="pl-k">if</span> (<span class="pl-s1">leaf</span>)
+                <span class="pl-k">return</span> <span class="pl-c1">null</span>;
+
+            <span class="pl-k">return</span> <span class="pl-s1">children</span>[<span class="pl-s1">i</span>].<span class="pl-en">find</span>(<span class="pl-s1">key</span>);
+        }
+
+        <span class="pl-k">public</span> <span class="pl-smi">void</span> <span class="pl-en">insertKey</span>(<span class="pl-smi">int</span> <span class="pl-s1">index</span>, <span class="pl-smi">int</span> <span class="pl-s1">key</span>){
+            <span class="pl-smi">System</span>.<span class="pl-en">arraycopy</span>(<span class="pl-s1">keys</span>, <span class="pl-s1">index</span>, <span class="pl-s1">keys</span>, <span class="pl-s1">index</span> + <span class="pl-c1">1</span>, <span class="pl-s1">keyNum</span> - <span class="pl-s1">index</span>);
+            <span class="pl-s1">keys</span>[<span class="pl-s1">index</span>] = <span class="pl-s1">key</span>;
+            <span class="pl-s1">keyNum</span>++;
+        }
+
+        <span class="pl-k">public</span> <span class="pl-smi">void</span> <span class="pl-en">insertNode</span>(<span class="pl-smi">int</span> <span class="pl-s1">index</span>, <span class="pl-smi">Node</span> <span class="pl-s1">node</span>){
+            <span class="pl-smi">System</span>.<span class="pl-en">arraycopy</span>(<span class="pl-s1">children</span>, <span class="pl-s1">index</span>, <span class="pl-s1">children</span>, <span class="pl-s1">index</span> + <span class="pl-c1">1</span>, <span class="pl-s1">keyNum</span> - <span class="pl-s1">index</span>);
+            <span class="pl-s1">children</span>[<span class="pl-s1">index</span>] = <span class="pl-s1">node</span>;
+        }
+
+        <span class="pl-c1">@</span><span class="pl-c1">Override</span>
+        <span class="pl-k">public</span> <span class="pl-smi">String</span> <span class="pl-en">toString</span>() {
+            <span class="pl-smi">StringBuilder</span> <span class="pl-s1">sb</span> = <span class="pl-k">new</span> <span class="pl-smi">StringBuilder</span>();
+            <span class="pl-s1">sb</span>.<span class="pl-en">append</span>(<span class="pl-s">'['</span>);
+            <span class="pl-k">for</span> (<span class="pl-smi">int</span> <span class="pl-s1">i</span> = <span class="pl-c1">0</span>;<span class="pl-s1">i</span> &lt; <span class="pl-s1">keyNum</span>;<span class="pl-s1">i</span>++){
+                <span class="pl-s1">sb</span>.<span class="pl-en">append</span>(<span class="pl-s1">keys</span>[<span class="pl-s1">i</span>]);
+                <span class="pl-k">if</span> (<span class="pl-s1">i</span> != <span class="pl-s1">keyNum</span> - <span class="pl-c1">1</span>)
+                    <span class="pl-s1">sb</span>.<span class="pl-en">append</span>(<span class="pl-s">','</span>);
+            }
+            <span class="pl-s1">sb</span>.<span class="pl-en">append</span>(<span class="pl-s">']'</span>);
+
+            <span class="pl-k">return</span> <span class="pl-s1">sb</span>.<span class="pl-en">toString</span>();
+        }
+    }
+}</pre></div></div>
 <div style="font-size:small;margin-top:8px;float:right;">转载请注明出处</div>
 <button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
 <div class="comments" id="comments"></div>

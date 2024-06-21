@@ -271,3 +271,304 @@ public void removeNode(Node target){
   - 无法通过旋转恢复平衡，则合并（都采用左合并）
     - 若不平衡节点存在左兄弟，向左兄弟合并（若`parent.childre[i + 1] == 此不平衡node`，则将`parent.children[i]`以及整个不平衡节点合并到左兄弟）
     - 若不平衡节点不存在左兄弟，则将右兄弟合并到不平衡节点（若`parent.childre[i + 1] == 此不平衡node的右兄弟`，则将`parent.children[i]`以及整个不平衡节点的右兄弟合并到不平衡节点）
+
+### 完整的B树代码
+
+> 不单独贴B树的删除代码了，删除的逻辑已在上方给出。下方代码已经过测试，没有问题。
+
+```java
+public class BTree {
+    private Node root;              // root node
+    private final int t;            // minDegree
+    private final int MIN_KEY_NUM;
+    private final int MAX_KEY_NUM;
+
+    public BTree(){
+        this(2);
+    }
+
+    public BTree(int t){
+        this.t = t;
+        root = new Node(t);
+        MIN_KEY_NUM = t - 1;
+        MAX_KEY_NUM = 2 * t;            // 这个MAX_KEY_NUM 在满叔的设计里是 2 * t - 1，key的数量范围为[t - 1, 2 * t - 1]，在满叔的设计里（[t - 1, 2 * t - 1)），不包括右边了，我查阅了一下，右边也是闭区间
+    }
+
+    /**
+     * 判断B树中是否存在指定key
+     * @param key
+     * @return
+     */
+    public boolean contains(int key){
+        return root.find(key) != null;
+    }
+
+    public void put(int key){
+        doPut(null, 0, root, key);
+    }
+
+    private void doPut(Node parent, int index, Node node, int key){
+        int i = 0;
+        while (i < node.keyNum){
+            if (key == node.keys[i])
+                return;
+            if (key < node.keys[i])
+                break;
+            i++;
+        }
+
+        if (node.leaf){
+            // 插入
+            node.insertKey(i, key);
+        } else {
+            // 递归插入
+            doPut(node, i, node.children[i], key);
+        }
+
+        if (node.keyNum == MAX_KEY_NUM){
+            // 节点分裂
+            split(node, parent, index);
+        }
+    }
+
+    private void split(Node node, Node parent, int index){
+        if (parent == null){
+            Node newRoot = new Node(t);
+            newRoot.insertNode(0, node);
+            newRoot.leaf = false;
+            parent = newRoot;
+            root = newRoot;
+        }
+
+        Node right = new Node(t);
+        right.leaf = node.leaf;
+        System.arraycopy(node.keys, t, right.keys, 0, t - 1);
+        if (!node.leaf){
+            System.arraycopy(node.children, t, right.children, 0, t);
+        }
+
+        right.keyNum = t - 1;
+
+        parent.insertKey(index, node.keys[t - 1]);
+        parent.insertNode(index + 1, right);
+        node.keyNum = t - 1;
+    }
+
+    /**
+     *
+     * @param key
+     */
+    public void remove(int key){
+        doRemove(root, null, 0, key);
+    }
+
+    private void doRemove(Node node, Node parent, int which, int key){
+        int i = 0;
+        while (i < node.keyNum){
+            if (key == node.keys[i]){
+                break;
+            }
+            if (key < node.keys[i])
+                break;
+            i++;
+        }
+
+        if (node.leaf){
+            if (node.keys[i] != key){
+                return;
+            } else {
+                // 叶子节点 进行删除
+                node.removeKey(i);
+            }
+        } else {
+            if (node.keys[i] != key){
+                doRemove(node.children[i], node, i, key);
+            } else {
+                // 非叶子节点 找到后继key 交换key 删除后继key
+                Node right = node.children[i + 1];
+                while (right.children[0] != null){
+                    right = right.children[0];
+                }
+
+                node.keys[i] = right.keys[0];
+
+                doRemove(node.children[i + 1], node, i + 1, right.keys[0]);
+            }
+        }
+
+        if (node.keyNum < MIN_KEY_NUM){
+            // 失衡
+            merge(node, parent, which);
+        }
+    }
+
+    private void merge(Node node, Node parent, int index){
+        if (root == node){
+            // node == root 情况
+            if (root.keyNum == 0 && root.children[0] != null)
+                root = root.children[0];
+            return;
+        }
+
+        Node leftBrother = parent.leftBrother(index);
+        if (leftBrother != null && leftBrother.keyNum > MIN_KEY_NUM){
+            // 右旋
+            int left = leftBrother.removeRightestKey();
+            int mid = parent.keys[index - 1];
+            parent.keys[index - 1] = left;
+            node.insertKey(0, mid);
+
+            if (!leftBrother.leaf){
+                // 非叶子节点情况
+                Node rightestChild = leftBrother.removeRightestChild();
+                node.insertNode(0, rightestChild);
+            }
+
+            return;
+        }
+
+        Node rightBrother = parent.rightBrother(index);
+        if (rightBrother != null && rightBrother.keyNum > MIN_KEY_NUM){
+            // 左旋
+            int right = rightBrother.removeLeftestKey();
+            int mid = parent.keys[index];
+            parent.keys[index] = right;
+            node.insertKey(node.keyNum, mid);
+
+            if (!rightBrother.leaf){
+                // 非叶子节点情况
+                Node leftestChild = rightBrother.removeLeftestChild();
+                node.insertNode(node.keyNum + 1, leftestChild);
+            }
+
+            return;
+        }
+
+        if (leftBrother != null){
+            // 不平衡节点向左兄弟合并
+            parent.removeChild(index);
+            leftBrother.insertKey(leftBrother.keyNum, parent.removeKey(index - 1));
+            node.removeNode(leftBrother);
+        } else if (rightBrother != null){
+            // 不平衡节点的右兄弟向不平衡节点合并
+            parent.removeChild(index + 1);
+            node.insertKey(node.keyNum, parent.removeKey(index));
+            rightBrother.removeNode(node);
+        }
+    }
+
+    static class Node {
+        int[] keys;             // key for compare
+        Node[] children;        // children pointer
+        int keyNum;             // key size
+        boolean leaf = true;    // leaf or not
+        int t;                  // minDegree
+
+        public Node(int minDegree){
+            this.t = minDegree;
+            keys = new int[2 * t];
+            children = new Node[2 * t];
+        }
+
+        /**
+         *
+         * @param index
+         * @return
+         */
+        public int removeKey(int index){
+            int re = keys[index];
+            System.arraycopy(keys, index + 1, keys, index, --keyNum - index);
+            return re;
+        }
+
+        /**
+         *
+         * @return
+         */
+        public int removeLeftestKey(){
+            return removeKey(0);
+        }
+
+        /**
+         *
+         * @return
+         */
+        public int removeRightestKey(){
+            return removeKey(keyNum - 1);
+        }
+
+        public Node removeChild(int index){
+            Node re = children[index];
+            System.arraycopy(children, index + 1, children, index, keyNum - index);
+            return re;
+        }
+
+        public Node removeLeftestChild(){
+            return removeChild(0);
+        }
+
+        public Node removeRightestChild(){
+            return removeChild(keyNum);
+        }
+
+        public Node leftBrother(int index){
+            return index > 0 ? children[index - 1] : null;
+        }
+
+        public Node rightBrother(int index){
+            return index == keyNum ? null : children[index + 1];
+        }
+
+        public void removeNode(Node target){
+            int start = target.keyNum;
+            if (!leaf){
+                if (keyNum + 1 >= 0) System.arraycopy(children, 0, target.children, start, keyNum + 1);
+            }
+
+            for (int i = 0; i < keyNum; i++) {
+                target.keys[target.keyNum++] = keys[i];
+            }
+        }
+
+        public Node find(int key){
+            int i;
+            for (i = 0;i < keyNum;i++){
+                if (keys[i] == key)
+                    return this;
+                if (keys[i] > key)
+                    break;
+            }
+
+            if (leaf)
+                return null;
+
+            return children[i].find(key);
+        }
+
+        public void insertKey(int index, int key){
+            System.arraycopy(keys, index, keys, index + 1, keyNum - index);
+            keys[index] = key;
+            keyNum++;
+        }
+
+        public void insertNode(int index, Node node){
+            System.arraycopy(children, index, children, index + 1, keyNum - index);
+            children[index] = node;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append('[');
+            for (int i = 0;i < keyNum;i++){
+                sb.append(keys[i]);
+                if (i != keyNum - 1)
+                    sb.append(',');
+            }
+            sb.append(']');
+
+            return sb.toString();
+        }
+    }
+}
+```
