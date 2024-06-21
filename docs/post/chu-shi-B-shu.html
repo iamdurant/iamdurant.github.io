@@ -267,7 +267,7 @@ public void removeNode(Node target){
   - 不存在指定key，删除操作
 - 若节点为非叶子节点
   - 不存在指定key，递归删除
-  - 存在指定key，找到后继key，与后继key交换，删除后继key（相当于限定了删除操作只能在叶子节点进行）
+  - 存在指定key，找到后继key，与后继key交换，递归删除后继key（相当于限定了删除操作只能在叶子节点进行）
 - 删除上述操作完成后，归向上判断是否需要合并（key数 < t - 1）
 
 #### 合并操作
@@ -276,8 +276,12 @@ public void removeNode(Node target){
   - 哈哈
   - 哈哈
 - 非根节点
-  - 哈哈
-  - 哈哈
+  - 左兄弟或者右兄弟key富余
+    - 若存在左兄弟且左兄弟key富余，则右旋
+    - 若存在右兄弟且右兄弟key富余，则左旋
+  - 无法通过旋转恢复平衡，则合并（都采用左合并）
+    - 若不平衡节点存在左兄弟，向左兄弟合并（若`parent.childre[i + 1] == 此不平衡node`，则将`parent.children[i]`以及整个不平衡节点合并到左兄弟）
+    - 若不平衡节点不存在左兄弟，则将右兄弟合并到不平衡节点（若`parent.childre[i + 1] == 此不平衡node的右兄弟`，则将`parent.children[i]`以及整个不平衡节点的右兄弟合并到不平衡节点）
 
 
 
@@ -541,7 +545,7 @@ public void removeNode(Node target){
   - 不存在指定key，删除操作
 - 若节点为非叶子节点
   - 不存在指定key，递归删除
-  - 存在指定key，找到后继key，与后继key交换，删除后继key（相当于限定了删除操作只能在叶子节点进行）
+  - 存在指定key，找到后继key，与后继key交换，递归删除后继key（相当于限定了删除操作只能在叶子节点进行）
 - 删除上述操作完成后，归向上判断是否需要合并（key数 < t - 1）
 
 #### 合并操作
@@ -550,8 +554,12 @@ public void removeNode(Node target){
   - 哈哈
   - 哈哈
 - 非根节点
-  - 哈哈
-  - 哈哈
+  - 左兄弟或者右兄弟key富余
+    - 若存在左兄弟且左兄弟key富余，则右旋
+    - 若存在右兄弟且右兄弟key富余，则左旋
+  - 无法通过旋转恢复平衡，则合并（都采用左合并）
+    - 若不平衡节点存在左兄弟，向左兄弟合并（若`parent.childre[i + 1] == 此不平衡node`，则将`parent.children[i]`以及整个不平衡节点合并到左兄弟）
+    - 若不平衡节点不存在左兄弟，则将右兄弟合并到不平衡节点（若`parent.childre[i + 1] == 此不平衡node的右兄弟`，则将`parent.children[i]`以及整个不平衡节点的右兄弟合并到不平衡节点）
 
 
 
@@ -866,7 +874,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <li>若节点为非叶子节点
 <ul>
 <li>不存在指定key，递归删除</li>
-<li>存在指定key，找到后继key，与后继key交换，删除后继key（相当于限定了删除操作只能在叶子节点进行）</li>
+<li>存在指定key，找到后继key，与后继key交换，递归删除后继key（相当于限定了删除操作只能在叶子节点进行）</li>
 </ul>
 </li>
 <li>删除上述操作完成后，归向上判断是否需要合并（key数 &lt; t - 1）</li>
@@ -881,8 +889,18 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 </li>
 <li>非根节点
 <ul>
-<li>哈哈</li>
-<li>哈哈</li>
+<li>左兄弟或者右兄弟key富余
+<ul>
+<li>若存在左兄弟且左兄弟key富余，则右旋</li>
+<li>若存在右兄弟且右兄弟key富余，则左旋</li>
+</ul>
+</li>
+<li>无法通过旋转恢复平衡，则合并（都采用左合并）
+<ul>
+<li>若不平衡节点存在左兄弟，向左兄弟合并（若<code class="notranslate">parent.childre[i + 1] == 此不平衡node</code>，则将<code class="notranslate">parent.children[i]</code>以及整个不平衡节点合并到左兄弟）</li>
+<li>若不平衡节点不存在左兄弟，则将右兄弟合并到不平衡节点（若<code class="notranslate">parent.childre[i + 1] == 此不平衡node的右兄弟</code>，则将<code class="notranslate">parent.children[i]</code>以及整个不平衡节点的右兄弟合并到不平衡节点）</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul></div>
