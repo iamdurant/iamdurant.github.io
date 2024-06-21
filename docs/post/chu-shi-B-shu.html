@@ -387,7 +387,10 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <blockquote>
 <p>不单独贴B树的删除代码了，删除的逻辑已在上方给出。下方代码已经过测试，没有问题。</p>
 </blockquote>
-<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-smi">BTree</span> {
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">util</span>.<span class="pl-s1">LinkedList</span>;
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">util</span>.<span class="pl-s1">Queue</span>;
+
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-smi">BTree</span> {
     <span class="pl-k">private</span> <span class="pl-smi">Node</span> <span class="pl-s1">root</span>;              <span class="pl-c">// root node</span>
     <span class="pl-k">private</span> <span class="pl-k">final</span> <span class="pl-smi">int</span> <span class="pl-s1">t</span>;            <span class="pl-c">// minDegree</span>
     <span class="pl-k">private</span> <span class="pl-k">final</span> <span class="pl-smi">int</span> <span class="pl-c1">MIN_KEY_NUM</span>;
@@ -401,7 +404,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
         <span class="pl-smi">this</span>.<span class="pl-s1">t</span> = <span class="pl-s1">t</span>;
         <span class="pl-s1">root</span> = <span class="pl-k">new</span> <span class="pl-smi">Node</span>(<span class="pl-s1">t</span>);
         <span class="pl-c1">MIN_KEY_NUM</span> = <span class="pl-s1">t</span> - <span class="pl-c1">1</span>;
-        <span class="pl-c1">MAX_KEY_NUM</span> = <span class="pl-c1">2</span> * <span class="pl-s1">t</span>;            <span class="pl-c">// 这个MAX_KEY_NUM 在满叔的设计里是 2 * t - 1，key的数量范围应该为[t - 1, 2 * t - 1]，在满叔的设计里是（[t - 1, 2 * t - 1)），不包括右边了，我查阅了一下，右边也是闭区间，所以，我的node的keys数组大小也是2 * t</span>
+        <span class="pl-c1">MAX_KEY_NUM</span> = <span class="pl-c1">2</span> * <span class="pl-s1">t</span>;            <span class="pl-c">// 这个MAX_KEY_NUM 实际上应该为 2 * t - 1 但是新增代码中写错了判断条件 不想改新增代码，就改这里了</span>
     }
 
     <span class="pl-c">/**</span>
@@ -565,6 +568,37 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
             <span class="pl-s1">node</span>.<span class="pl-en">insertKey</span>(<span class="pl-s1">node</span>.<span class="pl-s1">keyNum</span>, <span class="pl-s1">parent</span>.<span class="pl-en">removeKey</span>(<span class="pl-s1">index</span>));
             <span class="pl-s1">rightBrother</span>.<span class="pl-en">removeNode</span>(<span class="pl-s1">node</span>);
         }
+    }
+
+    <span class="pl-c1">@</span><span class="pl-c1">Override</span>
+    <span class="pl-k">public</span> <span class="pl-smi">String</span> <span class="pl-en">toString</span>() {
+        <span class="pl-k">if</span> (<span class="pl-s1">root</span> == <span class="pl-c1">null</span>) {
+            <span class="pl-k">return</span> <span class="pl-s">"[]"</span>;
+        }
+
+        <span class="pl-smi">StringBuilder</span> <span class="pl-s1">sb</span> = <span class="pl-k">new</span> <span class="pl-smi">StringBuilder</span>();
+        <span class="pl-smi">Queue</span>&lt;<span class="pl-smi">Node</span>&gt; <span class="pl-s1">queue</span> = <span class="pl-k">new</span> <span class="pl-smi">LinkedList</span>&lt;&gt;();
+        <span class="pl-s1">queue</span>.<span class="pl-en">add</span>(<span class="pl-s1">root</span>);
+
+        <span class="pl-k">while</span> (!<span class="pl-s1">queue</span>.<span class="pl-en">isEmpty</span>()) {
+            <span class="pl-smi">int</span> <span class="pl-s1">levelSize</span> = <span class="pl-s1">queue</span>.<span class="pl-en">size</span>();
+            <span class="pl-k">while</span> (<span class="pl-s1">levelSize</span> &gt; <span class="pl-c1">0</span>) {
+                <span class="pl-smi">Node</span> <span class="pl-s1">node</span> = <span class="pl-s1">queue</span>.<span class="pl-en">poll</span>();
+                <span class="pl-s1">sb</span>.<span class="pl-en">append</span>(<span class="pl-s1">node</span> != <span class="pl-c1">null</span> ? <span class="pl-s1">node</span>.<span class="pl-en">toString</span>() : <span class="pl-c1">null</span>).<span class="pl-en">append</span>(<span class="pl-s">' '</span>);
+
+                <span class="pl-k">if</span> (!<span class="pl-s1">node</span>.<span class="pl-s1">leaf</span>) {
+                    <span class="pl-k">for</span> (<span class="pl-smi">int</span> <span class="pl-s1">i</span> = <span class="pl-c1">0</span>; <span class="pl-s1">i</span> &lt;= <span class="pl-s1">node</span>.<span class="pl-s1">keyNum</span>; <span class="pl-s1">i</span>++) {
+                        <span class="pl-k">if</span> (<span class="pl-s1">node</span>.<span class="pl-s1">children</span>[<span class="pl-s1">i</span>] != <span class="pl-c1">null</span>) {
+                            <span class="pl-s1">queue</span>.<span class="pl-en">add</span>(<span class="pl-s1">node</span>.<span class="pl-s1">children</span>[<span class="pl-s1">i</span>]);
+                        }
+                    }
+                }
+                <span class="pl-s1">levelSize</span>--;
+            }
+            <span class="pl-s1">sb</span>.<span class="pl-en">append</span>(<span class="pl-s">'\n'</span>);
+        }
+
+        <span class="pl-k">return</span> <span class="pl-s1">sb</span>.<span class="pl-en">toString</span>();
     }
 
     <span class="pl-k">static</span> <span class="pl-k">class</span> <span class="pl-smi">Node</span> {

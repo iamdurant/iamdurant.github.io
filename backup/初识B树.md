@@ -299,6 +299,9 @@ public void removeNode(Node target){
 > 不单独贴B树的删除代码了，删除的逻辑已在上方给出。下方代码已经过测试，没有问题。
 
 ```java
+import java.util.LinkedList;
+import java.util.Queue;
+
 public class BTree {
     private Node root;              // root node
     private final int t;            // minDegree
@@ -313,7 +316,7 @@ public class BTree {
         this.t = t;
         root = new Node(t);
         MIN_KEY_NUM = t - 1;
-        MAX_KEY_NUM = 2 * t;            // 这个MAX_KEY_NUM 在满叔的设计里是 2 * t - 1，key的数量范围应该为[t - 1, 2 * t - 1]，在满叔的设计里是（[t - 1, 2 * t - 1)），不包括右边了，我查阅了一下，右边也是闭区间，所以，我的node的keys数组大小也是2 * t
+        MAX_KEY_NUM = 2 * t;            // 这个MAX_KEY_NUM 实际上应该为 2 * t - 1 但是新增代码中写错了判断条件 不想改新增代码，就改这里了
     }
 
     /**
@@ -477,6 +480,37 @@ public class BTree {
             node.insertKey(node.keyNum, parent.removeKey(index));
             rightBrother.removeNode(node);
         }
+    }
+
+    @Override
+    public String toString() {
+        if (root == null) {
+            return "[]";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        Queue<Node> queue = new LinkedList<>();
+        queue.add(root);
+
+        while (!queue.isEmpty()) {
+            int levelSize = queue.size();
+            while (levelSize > 0) {
+                Node node = queue.poll();
+                sb.append(node != null ? node.toString() : null).append(' ');
+
+                if (!node.leaf) {
+                    for (int i = 0; i <= node.keyNum; i++) {
+                        if (node.children[i] != null) {
+                            queue.add(node.children[i]);
+                        }
+                    }
+                }
+                levelSize--;
+            }
+            sb.append('\n');
+        }
+
+        return sb.toString();
     }
 
     static class Node {
