@@ -9,20 +9,18 @@
         let theme = localStorage.getItem("meek_theme") || "light";
         document.documentElement.setAttribute("data-color-mode", theme);
     </script>
-<meta name="description" content="```
-vless://8d4d0252-3302-414d-9e89-ecee76c1f6a7@102.215.231.118:30008?encryption=none&flow=xtls-rprx-vision&security=reality&sni=www.ebay.com&fp=chrome&pbk=zzo8XkOJhe2fdYONUKhkq76zVxQgI8fhFZQE0KHuK24&type=tcp&headerType=none#233boy-reality-102.215.231.118
+<meta name="description" content="#### 底层数据结构
 
-```。">
+哈希表底层数据结构为数组＋链表 或者 数组+红黑树。">
 <meta property="og:title" content="哈希表">
-<meta property="og:description" content="```
-vless://8d4d0252-3302-414d-9e89-ecee76c1f6a7@102.215.231.118:30008?encryption=none&flow=xtls-rprx-vision&security=reality&sni=www.ebay.com&fp=chrome&pbk=zzo8XkOJhe2fdYONUKhkq76zVxQgI8fhFZQE0KHuK24&type=tcp&headerType=none#233boy-reality-102.215.231.118
+<meta property="og:description" content="#### 底层数据结构
 
-```。">
+哈希表底层数据结构为数组＋链表 或者 数组+红黑树。">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://iamdurant.github.io/post/ha-xi-biao.html">
 <meta property="og:image" content="https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1692271843.png">
 <title>哈希表</title>
-
+<link href="//unpkg.com/@wooorm/starry-night@2.1.1/style/both.css" rel="stylesheet" />
 
 </head>
 <style>
@@ -76,9 +74,24 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 </div>
 </div>
     <div id="content">
-<div class="markdown-body" id="postBody"><pre class="notranslate"><code class="notranslate">vless://8d4d0252-3302-414d-9e89-ecee76c1f6a7@102.215.231.118:30008?encryption=none&amp;flow=xtls-rprx-vision&amp;security=reality&amp;sni=www.ebay.com&amp;fp=chrome&amp;pbk=zzo8XkOJhe2fdYONUKhkq76zVxQgI8fhFZQE0KHuK24&amp;type=tcp&amp;headerType=none#233boy-reality-102.215.231.118
+<div class="markdown-body" id="postBody"><h4>底层数据结构</h4>
+<p>哈希表底层数据结构为数组＋链表 或者 数组+红黑树。</p>
+<h4>节点类</h4>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">static</span> <span class="pl-k">class</span> <span class="pl-smi">Entry</span> {
+    <span class="pl-smi">int</span> <span class="pl-s1">hash</span>;
+    <span class="pl-smi">Object</span> <span class="pl-s1">key</span>;
+    <span class="pl-smi">Object</span> <span class="pl-s1">value</span>;
+    <span class="pl-smi">Entry</span> <span class="pl-s1">next</span>;
 
-</code></pre></div>
+    <span class="pl-k">public</span> <span class="pl-smi">Entry</span>(<span class="pl-smi">int</span> <span class="pl-s1">hash</span>, <span class="pl-smi">Object</span> <span class="pl-s1">key</span>, <span class="pl-smi">Object</span> <span class="pl-s1">value</span>) {
+        <span class="pl-smi">this</span>.<span class="pl-s1">hash</span> = <span class="pl-s1">hash</span>;
+        <span class="pl-smi">this</span>.<span class="pl-s1">key</span> = <span class="pl-s1">key</span>;
+        <span class="pl-smi">this</span>.<span class="pl-s1">value</span> = <span class="pl-s1">value</span>;
+    }
+}</pre></div>
+<h4>位运算代替求模运算</h4>
+<p>前提：数组长度为2的幂<br>
+hash % 数组长度 &lt;==&gt;（等价于） hash &amp; (数组长度 - 1)</p></div>
 <div style="font-size:small;margin-top:8px;float:right;">转载请注明出处</div>
 <button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
 <div class="comments" id="comments"></div>
