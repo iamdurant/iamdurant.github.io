@@ -1,11 +1,22 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>kevin's blog</title><link>https://iamdurant.github.io</link><description>生存还是毁灭，这是一个值得考虑的问题</description><copyright>kevin's blog</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1692271843.png</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Sun, 23 Jun 2024 10:22:16 +0000</lastBuildDate><managingEditor>kevin's blog</managingEditor><ttl>60</ttl><webMaster>kevin's blog</webMaster><item><title>基督山伯爵</title><link>https://iamdurant.github.io/post/ji-du-shan-bo-jue.html</link><description>#### 核心人物&#13;
-- 埃蒙德·唐戴斯&#13;
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>kevin's blog</title><link>https://iamdurant.github.io</link><description>生存还是毁灭，这是一个值得考虑的问题</description><copyright>kevin's blog</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1692271843.png</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Sun, 23 Jun 2024 11:25:16 +0000</lastBuildDate><managingEditor>kevin's blog</managingEditor><ttl>60</ttl><webMaster>kevin's blog</webMaster><item><title>基督山伯爵</title><link>https://iamdurant.github.io/post/ji-du-shan-bo-jue.html</link><description>#### 核心人物&#13;
+- 法里亚（神甫）&#13;
+- 埃德蒙·唐戴斯（主人公）&#13;
 - 卡德鲁斯&#13;
-- 梅赛苔丝 德·莫尔赛夫夫人&#13;
-- 费尔南 德·莫尔赛夫伯爵&#13;
+- 梅赛苔丝（德·莫尔赛夫夫人）&#13;
+- 费尔南（德·莫尔赛夫伯爵）&#13;
 - 唐格拉尔&#13;
-- 维福尔。</description><guid isPermaLink="true">https://iamdurant.github.io/post/ji-du-shan-bo-jue.html</guid><pubDate>Sun, 23 Jun 2024 10:21:46 +0000</pubDate></item><item><title>哈希表</title><link>https://iamdurant.github.io/post/ha-xi-biao.html</link><description>```&#13;
+- 德·维尔福&#13;
+- 莫雷尔&#13;
+&#13;
+#### 其他人物&#13;
+- 雅各布（水手）&#13;
+- 朱丽（莫雷尔之女）&#13;
+- 马克西米利安·莫雷尔（莫雷尔之子）&#13;
+- 埃马纽埃尔（正追求朱丽）&#13;
+- 科克莱斯（莫雷尔公司出纳员）&#13;
+- 佩纳隆（老水手）&#13;
+- 戈玛尔（法老号船长）。</description><guid isPermaLink="true">https://iamdurant.github.io/post/ji-du-shan-bo-jue.html</guid><pubDate>Sun, 23 Jun 2024 10:21:46 +0000</pubDate></item><item><title>哈希表</title><link>https://iamdurant.github.io/post/ha-xi-biao.html</link><description>```&#13;
 vless://8d4d0252-3302-414d-9e89-ecee76c1f6a7@102.215.231.118:30008?encryption=none&amp;flow=xtls-rprx-vision&amp;security=reality&amp;sni=www.ebay.com&amp;fp=chrome&amp;pbk=zzo8XkOJhe2fdYONUKhkq76zVxQgI8fhFZQE0KHuK24&amp;type=tcp&amp;headerType=none#233boy-reality-102.215.231.118&#13;
 &#13;
 ```。</description><guid isPermaLink="true">https://iamdurant.github.io/post/ha-xi-biao.html</guid><pubDate>Sat, 22 Jun 2024 05:31:16 +0000</pubDate></item><item><title>初识B树</title><link>https://iamdurant.github.io/post/chu-shi-B-shu.html</link><description>### B树&#13;
