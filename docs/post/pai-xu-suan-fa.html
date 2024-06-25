@@ -290,7 +290,36 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
             <span class="pl-s1">k</span>++;
         }
     }</pre></div>
-<h4>7. 快速排序</h4></div>
+<h4>7. 快速排序</h4>
+<p><strong>思想</strong></p>
+<p>找一个基准值，若基准值左右都有序则有序，可拆分为子问题。</p>
+<div class="highlight highlight-source-java"><pre class="notranslate">    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">quickSort</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>) {
+        <span class="pl-en">helpQS</span>(<span class="pl-s1">nums</span>, <span class="pl-c1">0</span>, <span class="pl-s1">nums</span>.<span class="pl-s1">length</span> - <span class="pl-c1">1</span>);
+    }
+
+    <span class="pl-k">private</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">helpQS</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>, <span class="pl-smi">int</span> <span class="pl-s1">l</span>, <span class="pl-smi">int</span> <span class="pl-s1">r</span>) {
+        <span class="pl-k">if</span> (<span class="pl-s1">l</span> &gt;= <span class="pl-s1">r</span>)
+            <span class="pl-k">return</span>;
+
+        <span class="pl-smi">int</span> <span class="pl-s1">x</span> = <span class="pl-en">partition</span>(<span class="pl-s1">nums</span>, <span class="pl-s1">l</span>, <span class="pl-s1">r</span>);
+        <span class="pl-en">helpQS</span>(<span class="pl-s1">nums</span>, <span class="pl-s1">l</span>, <span class="pl-s1">x</span> - <span class="pl-c1">1</span>);
+        <span class="pl-en">helpQS</span>(<span class="pl-s1">nums</span>, <span class="pl-s1">x</span> + <span class="pl-c1">1</span>, <span class="pl-s1">r</span>);
+    }
+
+    <span class="pl-k">private</span> <span class="pl-k">static</span> <span class="pl-smi">int</span> <span class="pl-s1">partition</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>, <span class="pl-smi">int</span> <span class="pl-s1">l</span>, <span class="pl-smi">int</span> <span class="pl-s1">r</span>) {
+        <span class="pl-k">while</span> (<span class="pl-s1">l</span> &lt; <span class="pl-s1">r</span>) {
+            <span class="pl-k">if</span> (<span class="pl-s1">nums</span>[<span class="pl-s1">l</span>] &gt; <span class="pl-s1">nums</span>[<span class="pl-s1">r</span>]) {
+                <span class="pl-smi">int</span> <span class="pl-s1">t</span> = <span class="pl-s1">nums</span>[<span class="pl-s1">r</span>];
+                <span class="pl-s1">nums</span>[<span class="pl-s1">r</span>] = <span class="pl-s1">nums</span>[<span class="pl-s1">l</span>];
+                <span class="pl-s1">nums</span>[<span class="pl-s1">l</span>] = <span class="pl-s1">nums</span>[<span class="pl-s1">r</span> - <span class="pl-c1">1</span>];
+                <span class="pl-s1">nums</span>[<span class="pl-s1">r</span> - <span class="pl-c1">1</span>] = <span class="pl-s1">t</span>;
+                <span class="pl-s1">r</span>--;
+            } <span class="pl-k">else</span>
+                <span class="pl-s1">l</span>++;
+        }
+
+        <span class="pl-k">return</span> <span class="pl-s1">r</span>;
+    }</pre></div></div>
 <div style="font-size:small;margin-top:8px;float:right;">转载请注明出处</div>
 <button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
 <div class="comments" id="comments"></div>
