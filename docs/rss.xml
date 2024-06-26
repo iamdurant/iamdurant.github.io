@@ -1,11 +1,22 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>kevin's blog</title><link>https://iamdurant.github.io</link><description>生存还是毁灭，这是一个值得考虑的问题</description><copyright>kevin's blog</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1692271843.png</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Tue, 25 Jun 2024 17:52:41 +0000</lastBuildDate><managingEditor>kevin's blog</managingEditor><ttl>60</ttl><webMaster>kevin's blog</webMaster><item><title>排序算法</title><link>https://iamdurant.github.io/post/pai-xu-suan-fa.html</link><description>### 基于比较的排序算法，常见有：&#13;
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>kevin's blog</title><link>https://iamdurant.github.io</link><description>生存还是毁灭，这是一个值得考虑的问题</description><copyright>kevin's blog</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1692271843.png</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Wed, 26 Jun 2024 19:39:38 +0000</lastBuildDate><managingEditor>kevin's blog</managingEditor><ttl>60</ttl><webMaster>kevin's blog</webMaster><item><title>排序算法</title><link>https://iamdurant.github.io/post/pai-xu-suan-fa.html</link><description>## 最基础的十大排序算法&#13;
+&#13;
+- 冒泡排序&#13;
+- 选择排序&#13;
+- 插入排序&#13;
+- 希尔排序&#13;
+- 堆排序&#13;
+- 归并排序&#13;
+- 快速排序&#13;
+- 计数排序&#13;
+- 桶排序&#13;
+- 基数排序&#13;
+&#13;
+### 基于比较的排序算法，常见有：&#13;
 &#13;
 ![各排序算法复杂度](https://github.com/iamdurant/iamdurant.github.io/assets/107034526/e9360d33-8b17-45d3-affe-1d0a7527914c)&#13;
 &#13;
-#### 1. 冒泡排序&#13;
-&#13;
-**思想**&#13;
+#### 冒泡排序&#13;
 &#13;
 重复遍历数组（每次遍历不断减少），每轮遍历不断比较并往后交换较大值，用一个变量记录最近的一次交换，可以减少交换次数， &#13;
 在部分有序的情况下，可以减少交换次数。</description><guid isPermaLink="true">https://iamdurant.github.io/post/pai-xu-suan-fa.html</guid><pubDate>Tue, 25 Jun 2024 15:08:48 +0000</pubDate></item><item><title>基督山伯爵</title><link>https://iamdurant.github.io/post/ji-du-shan-bo-jue.html</link><description>#### 核心人物&#13;
