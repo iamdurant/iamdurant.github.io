@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>kevin's blog</title><link>https://iamdurant.github.io</link><description>生存还是毁灭，这是一个值得考虑的问题</description><copyright>kevin's blog</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1692271843.png</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Sun, 07 Jul 2024 06:30:16 +0000</lastBuildDate><managingEditor>kevin's blog</managingEditor><ttl>60</ttl><webMaster>kevin's blog</webMaster><item><title>编译redis、mysql、nginx</title><link>https://iamdurant.github.io/post/bian-yi-redis%E3%80%81mysql%E3%80%81nginx.html</link><description>#### 环境&#13;
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>kevin's blog</title><link>https://iamdurant.github.io</link><description>生存还是毁灭，这是一个值得考虑的问题</description><copyright>kevin's blog</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1692271843.png</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Sun, 07 Jul 2024 16:15:59 +0000</lastBuildDate><managingEditor>kevin's blog</managingEditor><ttl>60</ttl><webMaster>kevin's blog</webMaster><item><title>编译redis、mysql、nginx</title><link>https://iamdurant.github.io/post/bian-yi-redis%E3%80%81mysql%E3%80%81nginx.html</link><description>#### 环境&#13;
 设备：redmi6 android linux-deploy chroot&#13;
 架构：arm32&#13;
 无法使用systemctl，无法使用docker部署应用，应用的预编译版本都为64位，无法使用&#13;
@@ -33,7 +33,9 @@
 1. `groupadd mysql  **not use**`&#13;
 2. `useradd mysql -r -g mysql -s /bin/false mysql **not use**`&#13;
 3. `./mysqld --initialize-insecure --user=mysql --basedir=/usr/local/mysql --datadir=/usr/local/mysql/data`&#13;
-4. `./mysqld_safe --user=root &amp;`。</description><guid isPermaLink="true">https://iamdurant.github.io/post/bian-yi-redis%E3%80%81mysql%E3%80%81nginx.html</guid><pubDate>Sun, 07 Jul 2024 06:29:43 +0000</pubDate></item><item><title>排序算法</title><link>https://iamdurant.github.io/post/pai-xu-suan-fa.html</link><description>## 最基础的十大排序算法&#13;
+4. `./mysqld_safe --user=root &amp;`。</description><guid isPermaLink="true">https://iamdurant.github.io/post/bian-yi-redis%E3%80%81mysql%E3%80%81nginx.html</guid><pubDate>Sun, 07 Jul 2024 06:29:43 +0000</pubDate></item><item><title>图</title><link>https://iamdurant.github.io/post/tu.html</link><description>### 图&#13;
+&#13;
+图由vertext以及edge组成，分为有向图和无向图。</description><guid isPermaLink="true">https://iamdurant.github.io/post/tu.html</guid><pubDate>Thu, 27 Jun 2024 11:40:05 +0000</pubDate></item><item><title>排序算法</title><link>https://iamdurant.github.io/post/pai-xu-suan-fa.html</link><description>## 最基础的十大排序算法&#13;
 &#13;
 - 冒泡排序&#13;
 - 选择排序&#13;
