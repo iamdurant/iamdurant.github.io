@@ -58,7 +58,10 @@
 `git branch -D <branch_name>` *强制删除*
 
 #### 切换分支
-`git checkout <branch_name>`
+```text
+git checkout <branch_name>
+git switch <branch_name>
+```
 
 #### 创建并切换分支
 `git checkout -b <branch_name>`
@@ -68,6 +71,31 @@
 
 #### 通用分支使用图
 ![image](https://github.com/iamdurant/iamdurant.github.io/assets/107034526/f0a1c210-5152-4ac9-a989-1e42fa39a0f8)
+
+### 远程仓库相关
+
+#### 关联仓库
+`git remote add <name> <git_url>`
+
+#### 关联分支
+```text
+git branch --set-upstream=<remote_repository_name>/<remote_branch_name> <current_branch_name>
+```
+
+#### 查看关联仓库
+`git remote`
+
+#### 关联分支
+`git push --set-upstream`
+
+#### 推送代码
+`git push <remote_repository_name> <local_branch>:<remote_branch>`
+
+#### 拉代码
+```text
+git fetch <repository_name> <branch_name>     抓取分支，不合并，若不指定branch，则抓取所有branch
+git pull <repository_name> <branch_name>       拉取分支，合并，若不指定branch，则拉取所有分支
+```
 。">
 <meta property="og:title" content="git">
 <meta property="og:description" content="### 概念图
@@ -119,7 +147,10 @@
 `git branch -D <branch_name>` *强制删除*
 
 #### 切换分支
-`git checkout <branch_name>`
+```text
+git checkout <branch_name>
+git switch <branch_name>
+```
 
 #### 创建并切换分支
 `git checkout -b <branch_name>`
@@ -129,6 +160,31 @@
 
 #### 通用分支使用图
 ![image](https://github.com/iamdurant/iamdurant.github.io/assets/107034526/f0a1c210-5152-4ac9-a989-1e42fa39a0f8)
+
+### 远程仓库相关
+
+#### 关联仓库
+`git remote add <name> <git_url>`
+
+#### 关联分支
+```text
+git branch --set-upstream=<remote_repository_name>/<remote_branch_name> <current_branch_name>
+```
+
+#### 查看关联仓库
+`git remote`
+
+#### 关联分支
+`git push --set-upstream`
+
+#### 推送代码
+`git push <remote_repository_name> <local_branch>:<remote_branch>`
+
+#### 拉代码
+```text
+git fetch <repository_name> <branch_name>     抓取分支，不合并，若不指定branch，则抓取所有branch
+git pull <repository_name> <branch_name>       拉取分支，合并，若不指定branch，则拉取所有分支
+```
 。">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://iamdurant.github.io/post/git.html">
@@ -222,13 +278,31 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <p><code class="notranslate">git branch -d &lt;branch_name&gt;</code><br>
 <code class="notranslate">git branch -D &lt;branch_name&gt;</code> <em>强制删除</em></p>
 <h4>切换分支</h4>
-<p><code class="notranslate">git checkout &lt;branch_name&gt;</code></p>
+<pre lang="text" class="notranslate"><code class="notranslate">git checkout &lt;branch_name&gt;
+git switch &lt;branch_name&gt;
+</code></pre>
 <h4>创建并切换分支</h4>
 <p><code class="notranslate">git checkout -b &lt;branch_name&gt;</code></p>
 <h4>合并分支</h4>
 <p><code class="notranslate">git merge &lt;be_merge_branch_name&gt;</code></p>
 <h4>通用分支使用图</h4>
-<p><a target="_blank" rel="noopener noreferrer" href="https://github.com/iamdurant/iamdurant.github.io/assets/107034526/f0a1c210-5152-4ac9-a989-1e42fa39a0f8"><img src="https://github.com/iamdurant/iamdurant.github.io/assets/107034526/f0a1c210-5152-4ac9-a989-1e42fa39a0f8" alt="image" style="max-width: 100%;"></a></p></div>
+<p><a target="_blank" rel="noopener noreferrer" href="https://github.com/iamdurant/iamdurant.github.io/assets/107034526/f0a1c210-5152-4ac9-a989-1e42fa39a0f8"><img src="https://github.com/iamdurant/iamdurant.github.io/assets/107034526/f0a1c210-5152-4ac9-a989-1e42fa39a0f8" alt="image" style="max-width: 100%;"></a></p>
+<h3>远程仓库相关</h3>
+<h4>关联仓库</h4>
+<p><code class="notranslate">git remote add &lt;name&gt; &lt;git_url&gt;</code></p>
+<h4>关联分支</h4>
+<pre lang="text" class="notranslate"><code class="notranslate">git branch --set-upstream=&lt;remote_repository_name&gt;/&lt;remote_branch_name&gt; &lt;current_branch_name&gt;
+</code></pre>
+<h4>查看关联仓库</h4>
+<p><code class="notranslate">git remote</code></p>
+<h4>关联分支</h4>
+<p><code class="notranslate">git push --set-upstream</code></p>
+<h4>推送代码</h4>
+<p><code class="notranslate">git push &lt;remote_repository_name&gt; &lt;local_branch&gt;:&lt;remote_branch&gt;</code></p>
+<h4>拉代码</h4>
+<pre lang="text" class="notranslate"><code class="notranslate">git fetch &lt;repository_name&gt; &lt;branch_name&gt;     抓取分支，不合并，若不指定branch，则抓取所有branch
+git pull &lt;repository_name&gt; &lt;branch_name&gt;       拉取分支，合并，若不指定branch，则拉取所有分支
+</code></pre></div>
 <div style="font-size:small;margin-top:8px;float:right;">转载请注明出处</div>
 
 <button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
