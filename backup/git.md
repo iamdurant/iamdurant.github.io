@@ -1,4 +1,6 @@
 ### 概念图
+![image](https://github.com/iamdurant/iamdurant.github.io/assets/107034526/54916701-a7d3-4c9a-b465-b69d0be73426)
+
 ![image](https://github.com/iamdurant/iamdurant.github.io/assets/107034526/a25ae0ec-eea1-4aa8-b86c-b9bae5f8d9af)
 
 ### 基础
