@@ -1,5 +1,23 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>kevin's blog</title><link>https://iamdurant.github.io</link><description>生存还是毁灭，这是一个值得考虑的问题</description><copyright>kevin's blog</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1692271843.png</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Mon, 08 Jul 2024 19:56:08 +0000</lastBuildDate><managingEditor>kevin's blog</managingEditor><ttl>60</ttl><webMaster>kevin's blog</webMaster><item><title>spring-boot-data-elasticsearch</title><link>https://iamdurant.github.io/post/spring-boot-data-elasticsearch.html</link><description>##### spring-boot-data-elasticsearch&#13;
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>kevin's blog</title><link>https://iamdurant.github.io</link><description>生存还是毁灭，这是一个值得考虑的问题</description><copyright>kevin's blog</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1692271843.png</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Fri, 12 Jul 2024 02:12:26 +0000</lastBuildDate><managingEditor>kevin's blog</managingEditor><ttl>60</ttl><webMaster>kevin's blog</webMaster><item><title>maven</title><link>https://iamdurant.github.io/post/maven.html</link><description>maven的本质是一个项目管理工具，将项目开发和管理抽象成一个项目对象模型（POM）&#13;
+POM（Project Object Model）：项目对象模型&#13;
+&#13;
+**仓库类型**&#13;
+- 本地仓库&#13;
+- 私服&#13;
+- 中央仓库&#13;
+&#13;
+**坐标**&#13;
+- groupId&#13;
+- artifactId&#13;
+- version&#13;
+&#13;
+**command**&#13;
+- mvn clean&#13;
+- mvn compile&#13;
+- mvn test&#13;
+- mvn package&#13;
+- mvn install。</description><guid isPermaLink="true">https://iamdurant.github.io/post/maven.html</guid><pubDate>Fri, 12 Jul 2024 02:12:03 +0000</pubDate></item><item><title>spring-boot-data-elasticsearch</title><link>https://iamdurant.github.io/post/spring-boot-data-elasticsearch.html</link><description>##### spring-boot-data-elasticsearch&#13;
 **依赖**&#13;
 ```xml&#13;
 &lt;dependency&gt;&#13;
