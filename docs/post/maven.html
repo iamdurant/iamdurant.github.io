@@ -27,7 +27,21 @@ POM（Project Object Model）：项目对象模型
 - mvn compile
 - mvn test
 - mvn package
-- mvn install。">
+- mvn install
+
+**依赖传递性**
+- 直接依赖：直接通过依赖配置建立的依赖关系
+- 间接依赖：被依赖的资源的依赖
+
+**依赖传递冲突问题**
+- 路劲优先：当依赖中出现冲突，层级越深，优先级越低
+- 声明优先：当冲突层级相同，root先声明优先级高
+
+**依赖范围**
+- compile 默认
+- provided 源码 测试
+- test 测试
+- runtime 打包。">
 <meta property="og:title" content="maven">
 <meta property="og:description" content="maven的本质是一个项目管理工具，将项目开发和管理抽象成一个项目对象模型（POM）
 POM（Project Object Model）：项目对象模型
@@ -47,7 +61,21 @@ POM（Project Object Model）：项目对象模型
 - mvn compile
 - mvn test
 - mvn package
-- mvn install。">
+- mvn install
+
+**依赖传递性**
+- 直接依赖：直接通过依赖配置建立的依赖关系
+- 间接依赖：被依赖的资源的依赖
+
+**依赖传递冲突问题**
+- 路劲优先：当依赖中出现冲突，层级越深，优先级越低
+- 声明优先：当冲突层级相同，root先声明优先级高
+
+**依赖范围**
+- compile 默认
+- provided 源码 测试
+- test 测试
+- runtime 打包。">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://iamdurant.github.io/post/maven.html">
 <meta property="og:image" content="https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1692271843.png">
@@ -127,6 +155,23 @@ POM（Project Object Model）：项目对象模型</p>
 <li>mvn test</li>
 <li>mvn package</li>
 <li>mvn install</li>
+</ul>
+<p><strong>依赖传递性</strong></p>
+<ul>
+<li>直接依赖：直接通过依赖配置建立的依赖关系</li>
+<li>间接依赖：被依赖的资源的依赖</li>
+</ul>
+<p><strong>依赖传递冲突问题</strong></p>
+<ul>
+<li>路劲优先：当依赖中出现冲突，层级越深，优先级越低</li>
+<li>声明优先：当冲突层级相同，root先声明优先级高</li>
+</ul>
+<p><strong>依赖范围</strong></p>
+<ul>
+<li>compile 默认</li>
+<li>provided 源码 测试</li>
+<li>test 测试</li>
+<li>runtime 打包</li>
 </ul></div>
 <div style="font-size:small;margin-top:8px;float:right;">转载请注明出处</div>
 
