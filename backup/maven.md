@@ -31,3 +31,35 @@ POM（Project Object Model）：项目对象模型
 - provided 源码 测试
 - test 测试
 - runtime 打包
+
+**模块聚合**
+```xml
+<packaging>pom</packaging>
+<modules>
+    <module></module>
+    <module></module>
+</modules>
+```
+
+**自定义属性**
+```xml
+<properties>
+    <spring.web.version></spring.web.version>
+    <redis.version></redis.version>
+</properties>
+```
+
+**pom属性解析到配置文件**
+```xml
+<resources>
+    <resource>
+        <directory>配置文件目录</directory>
+        <filtering>true</filtering>
+    <resource>
+</resources>
+```
+
+**跳过测试**
+```text
+mvn package -D skipTests
+```
