@@ -10,142 +10,14 @@
         let theme = localStorage.getItem("meek_theme") || "light";
         document.documentElement.setAttribute("data-color-mode", theme);
     </script>
-<meta name="description" content="maven的本质是一个项目管理工具，将项目开发和管理抽象成一个项目对象模型（POM）
-POM（Project Object Model）：项目对象模型
-
-**仓库类型**
-- 本地仓库
-- 私服
-- 中央仓库
-
-**坐标**
-- groupId
-- artifactId
-- version
-
-**command**
-- mvn clean
-- mvn compile
-- mvn test
-- mvn package
-- mvn install
-
-**依赖传递性**
-- 直接依赖：直接通过依赖配置建立的依赖关系
-- 间接依赖：被依赖的资源的依赖
-
-**依赖传递冲突问题**
-- 路劲优先：当依赖中出现冲突，层级越深，优先级越低
-- 声明优先：当冲突层级相同，root先声明优先级高
-
-**依赖范围**
-- compile 默认
-- provided 源码 测试
-- test 测试
-- runtime 打包
-
-**模块聚合**
-```xml
-<packaging>pom</packaging>
-<modules>
-    <module></module>
-    <module></module>
-</modules>
-```
-
-**自定义属性**
-```xml
-<properties>
-    <spring.web.version></spring.web.version>
-    <redis.version></redis.version>
-</properties>
-```
-
-**pom属性解析到配置文件**
-```xml
-<resources>
-    <resource>
-        <directory>配置文件目录</directory>
-        <filtering>true</filtering>
-    <resource>
-</resources>
-```
-
-**跳过测试**
-```text
-mvn package -D skipTests
-```。">
-<meta property="og:title" content="maven">
-<meta property="og:description" content="maven的本质是一个项目管理工具，将项目开发和管理抽象成一个项目对象模型（POM）
-POM（Project Object Model）：项目对象模型
-
-**仓库类型**
-- 本地仓库
-- 私服
-- 中央仓库
-
-**坐标**
-- groupId
-- artifactId
-- version
-
-**command**
-- mvn clean
-- mvn compile
-- mvn test
-- mvn package
-- mvn install
-
-**依赖传递性**
-- 直接依赖：直接通过依赖配置建立的依赖关系
-- 间接依赖：被依赖的资源的依赖
-
-**依赖传递冲突问题**
-- 路劲优先：当依赖中出现冲突，层级越深，优先级越低
-- 声明优先：当冲突层级相同，root先声明优先级高
-
-**依赖范围**
-- compile 默认
-- provided 源码 测试
-- test 测试
-- runtime 打包
-
-**模块聚合**
-```xml
-<packaging>pom</packaging>
-<modules>
-    <module></module>
-    <module></module>
-</modules>
-```
-
-**自定义属性**
-```xml
-<properties>
-    <spring.web.version></spring.web.version>
-    <redis.version></redis.version>
-</properties>
-```
-
-**pom属性解析到配置文件**
-```xml
-<resources>
-    <resource>
-        <directory>配置文件目录</directory>
-        <filtering>true</filtering>
-    <resource>
-</resources>
-```
-
-**跳过测试**
-```text
-mvn package -D skipTests
-```。">
+<meta name="description" content="">
+<meta property="og:title" content="设计模式">
+<meta property="og:description" content="">
 <meta property="og:type" content="article">
-<meta property="og:url" content="https://iamdurant.github.io/post/maven.html">
+<meta property="og:url" content="https://iamdurant.github.io/post/she-ji-mo-shi.html">
 <meta property="og:image" content="https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1692271843.png">
-<title>maven</title>
-<link href="//unpkg.com/@wooorm/starry-night@2.1.1/style/both.css" rel="stylesheet" />
+<title>设计模式</title>
+
 
 
 </head>
@@ -176,7 +48,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 
 <body>
     <div id="header">
-<h1 class="postTitle">maven</h1>
+<h1 class="postTitle">设计模式</h1>
 <div class="title-right">
     <a href="https://iamdurant.github.io" id="buttonHome" class="btn btn-invisible circle" title="首页">
         <svg class="octicon" width="16" height="16">
@@ -184,7 +56,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
         </svg>
     </a>
     
-    <a href="https://github.com/iamdurant/iamdurant.github.io/issues/11" target="_blank" class="btn btn-invisible circle" title="Issue">
+    <a href="https://github.com/iamdurant/iamdurant.github.io/issues/15" target="_blank" class="btn btn-invisible circle" title="Issue">
         <svg class="octicon" width="16" height="16">
             <path id="pathIssue" fill-rule="evenodd"></path>
         </svg>
@@ -200,66 +72,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 </div>
 </div>
     <div id="content">
-<div class="markdown-body" id="postBody"><p>maven的本质是一个项目管理工具，将项目开发和管理抽象成一个项目对象模型（POM）<br>
-POM（Project Object Model）：项目对象模型</p>
-<p><strong>仓库类型</strong></p>
-<ul>
-<li>本地仓库</li>
-<li>私服</li>
-<li>中央仓库</li>
-</ul>
-<p><strong>坐标</strong></p>
-<ul>
-<li>groupId</li>
-<li>artifactId</li>
-<li>version</li>
-</ul>
-<p><strong>command</strong></p>
-<ul>
-<li>mvn clean</li>
-<li>mvn compile</li>
-<li>mvn test</li>
-<li>mvn package</li>
-<li>mvn install</li>
-</ul>
-<p><strong>依赖传递性</strong></p>
-<ul>
-<li>直接依赖：直接通过依赖配置建立的依赖关系</li>
-<li>间接依赖：被依赖的资源的依赖</li>
-</ul>
-<p><strong>依赖传递冲突问题</strong></p>
-<ul>
-<li>路劲优先：当依赖中出现冲突，层级越深，优先级越低</li>
-<li>声明优先：当冲突层级相同，root先声明优先级高</li>
-</ul>
-<p><strong>依赖范围</strong></p>
-<ul>
-<li>compile 默认</li>
-<li>provided 源码 测试</li>
-<li>test 测试</li>
-<li>runtime 打包</li>
-</ul>
-<p><strong>模块聚合</strong></p>
-<div class="highlight highlight-text-xml"><pre class="notranslate">&lt;<span class="pl-ent">packaging</span>&gt;pom&lt;/<span class="pl-ent">packaging</span>&gt;
-&lt;<span class="pl-ent">modules</span>&gt;
-    &lt;<span class="pl-ent">module</span>&gt;&lt;/<span class="pl-ent">module</span>&gt;
-    &lt;<span class="pl-ent">module</span>&gt;&lt;/<span class="pl-ent">module</span>&gt;
-&lt;/<span class="pl-ent">modules</span>&gt;</pre></div>
-<p><strong>自定义属性</strong></p>
-<div class="highlight highlight-text-xml"><pre class="notranslate">&lt;<span class="pl-ent">properties</span>&gt;
-    &lt;<span class="pl-ent">spring</span>.web.version&gt;&lt;/<span class="pl-ent">spring</span>.web.version&gt;
-    &lt;<span class="pl-ent">redis</span>.version&gt;&lt;/<span class="pl-ent">redis</span>.version&gt;
-&lt;/<span class="pl-ent">properties</span>&gt;</pre></div>
-<p><strong>pom属性解析到配置文件</strong></p>
-<div class="highlight highlight-text-xml"><pre class="notranslate">&lt;<span class="pl-ent">resources</span>&gt;
-    &lt;<span class="pl-ent">resource</span>&gt;
-        &lt;<span class="pl-ent">directory</span>&gt;配置文件目录&lt;/<span class="pl-ent">directory</span>&gt;
-        &lt;<span class="pl-ent">filtering</span>&gt;true&lt;/<span class="pl-ent">filtering</span>&gt;
-    &lt;<span class="pl-ent">resource</span>&gt;
-&lt;/<span class="pl-ent">resources</span>&gt;</pre></div>
-<p><strong>跳过测试</strong></p>
-<pre lang="text" class="notranslate"><code class="notranslate">mvn package -D skipTests
-</code></pre></div>
+<div class="markdown-body" id="postBody"></div>
 <div style="font-size:small;margin-top:8px;float:right;">转载请注明出处</div>
 
 <button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>

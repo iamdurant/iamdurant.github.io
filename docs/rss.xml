@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>kevin's blog</title><link>https://iamdurant.github.io</link><description>生存还是毁灭，这是一个值得考虑的问题</description><copyright>kevin's blog</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1692271843.png</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Sat, 13 Jul 2024 16:13:55 +0000</lastBuildDate><managingEditor>kevin's blog</managingEditor><ttl>60</ttl><webMaster>kevin's blog</webMaster><item><title>Mysql</title><link>https://iamdurant.github.io/post/Mysql.html</link><description>**行记录格式**&#13;
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>kevin's blog</title><link>https://iamdurant.github.io</link><description>生存还是毁灭，这是一个值得考虑的问题</description><copyright>kevin's blog</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1692271843.png</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Fri, 19 Jul 2024 16:17:25 +0000</lastBuildDate><managingEditor>kevin's blog</managingEditor><ttl>60</ttl><webMaster>kevin's blog</webMaster><item><title>设计模式</title><link>https://iamdurant.github.io/post/she-ji-mo-shi.html</link><guid isPermaLink="true">https://iamdurant.github.io/post/she-ji-mo-shi.html</guid><pubDate>Sat, 13 Jul 2024 16:13:53 +0000</pubDate></item><item><title>dubbo</title><link>https://iamdurant.github.io/post/dubbo.html</link><guid isPermaLink="true">https://iamdurant.github.io/post/dubbo.html</guid><pubDate>Fri, 12 Jul 2024 04:02:50 +0000</pubDate></item><item><title>Mysql</title><link>https://iamdurant.github.io/post/Mysql.html</link><description>**行记录格式**&#13;
 - antelope&#13;
   - redundant&#13;
   - compact&#13;
@@ -35,7 +35,7 @@ Hash&#13;
 - LRU链&#13;
 ```text&#13;
 双向链表，节点存储缓存页等信息，分为young数据区、old 数据区，当buffer pool满时，淘汰数据&#13;
-```。</description><guid isPermaLink="true">https://iamdurant.github.io/post/Mysql.html</guid><pubDate>Fri, 12 Jul 2024 04:02:07 +0000</pubDate></item><item><title>maven</title><link>https://iamdurant.github.io/post/maven.html</link><description>maven的本质是一个项目管理工具，将项目开发和管理抽象成一个项目对象模型（POM）&#13;
+```。</description><guid isPermaLink="true">https://iamdurant.github.io/post/Mysql.html</guid><pubDate>Fri, 12 Jul 2024 04:02:07 +0000</pubDate></item><item><title>RocketMQ</title><link>https://iamdurant.github.io/post/RocketMQ.html</link><guid isPermaLink="true">https://iamdurant.github.io/post/RocketMQ.html</guid><pubDate>Fri, 12 Jul 2024 04:01:49 +0000</pubDate></item><item><title>maven</title><link>https://iamdurant.github.io/post/maven.html</link><description>maven的本质是一个项目管理工具，将项目开发和管理抽象成一个项目对象模型（POM）&#13;
 POM（Project Object Model）：项目对象模型&#13;
 &#13;
 **仓库类型**&#13;
