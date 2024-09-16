@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>kevin's blog</title><link>https://iamdurant.github.io</link><description>生存还是毁灭，这是一个值得考虑的问题</description><copyright>kevin's blog</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1692271843.png</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Mon, 16 Sep 2024 14:22:01 +0000</lastBuildDate><managingEditor>kevin's blog</managingEditor><ttl>60</ttl><webMaster>kevin's blog</webMaster><item><title>扫描线</title><link>https://iamdurant.github.io/post/sao-miao-xian.html</link><description>未接触。</description><guid isPermaLink="true">https://iamdurant.github.io/post/sao-miao-xian.html</guid><pubDate>Mon, 16 Sep 2024 14:19:04 +0000</pubDate></item><item><title>线段树</title><link>https://iamdurant.github.io/post/xian-duan-shu.html</link><description>未学习。</description><guid isPermaLink="true">https://iamdurant.github.io/post/xian-duan-shu.html</guid><pubDate>Mon, 16 Sep 2024 14:18:39 +0000</pubDate></item><item><title>差分数组（一维、二维）</title><link>https://iamdurant.github.io/post/cha-fen-shu-zu-%EF%BC%88-yi-wei-%E3%80%81-er-wei-%EF%BC%89.html</link><description>#### 一维差分&#13;
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>kevin's blog</title><link>https://iamdurant.github.io</link><description>生存还是毁灭，这是一个值得考虑的问题</description><copyright>kevin's blog</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1692271843.png</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Mon, 16 Sep 2024 23:40:14 +0000</lastBuildDate><managingEditor>kevin's blog</managingEditor><ttl>60</ttl><webMaster>kevin's blog</webMaster><item><title>扫描线</title><link>https://iamdurant.github.io/post/sao-miao-xian.html</link><description>未接触。</description><guid isPermaLink="true">https://iamdurant.github.io/post/sao-miao-xian.html</guid><pubDate>Mon, 16 Sep 2024 14:19:04 +0000</pubDate></item><item><title>线段树</title><link>https://iamdurant.github.io/post/xian-duan-shu.html</link><description>未学习。</description><guid isPermaLink="true">https://iamdurant.github.io/post/xian-duan-shu.html</guid><pubDate>Mon, 16 Sep 2024 14:18:39 +0000</pubDate></item><item><title>差分数组（一维、二维）</title><link>https://iamdurant.github.io/post/cha-fen-shu-zu-%EF%BC%88-yi-wei-%E3%80%81-er-wei-%EF%BC%89.html</link><description>#### 一维差分&#13;
 差分map写法：&#13;
 - 主要用到treemap的merge方法&#13;
 ```java&#13;
@@ -29,6 +29,18 @@ public boolean carPooling(int[][] trips, int capacity) {&#13;
 - 恢复&#13;
   - 对行依次做前缀和&#13;
   - 对列依次做前缀和&#13;
+&#13;
+&#13;
+#### 离散化 + 二维差分&#13;
+[leetcode：LCP74.最强祝福力场](https://leetcode.cn/problems/xepqZ5/)&#13;
+此题困惑点：&#13;
+- 存在非整数 ，解决：将所有坐标 * 2&#13;
+- 坐标范围很大，解决：离散化&#13;
+  - 离散化步骤：&#13;
+    - 排序&#13;
+    - 去重&#13;
+    - 重新编号&#13;
+&#13;
 。</description><guid isPermaLink="true">https://iamdurant.github.io/post/cha-fen-shu-zu-%EF%BC%88-yi-wei-%E3%80%81-er-wei-%EF%BC%89.html</guid><pubDate>Sat, 14 Sep 2024 14:31:36 +0000</pubDate></item><item><title>二维前缀和</title><link>https://iamdurant.github.io/post/er-wei-qian-zhui-he.html</link><description>求矩阵的子矩阵和&#13;
 - 方法一：对矩阵的每一行做前缀和，求子矩阵元素和时还需要遍历每一行，并不能做到O(1)的查询时间&#13;
 &#13;
