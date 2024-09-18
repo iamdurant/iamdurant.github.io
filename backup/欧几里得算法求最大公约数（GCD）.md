@@ -25,3 +25,6 @@ private int check(int a, int b) {
     return check(min, t);
 }
 ```
+
+#### 最小公倍数LCM
+`LCM = a * b / GCD(a, b)`
