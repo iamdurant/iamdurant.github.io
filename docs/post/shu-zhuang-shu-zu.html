@@ -60,52 +60,6 @@ static class FenwickTree {
 
             return sum;
         }
-    }static class FenwickTree {
-        int[] arr;
-        int[] b;
-        int n;
-
-        public FenwickTree(int[] nums) {
-            this.arr = nums;
-            n = nums.length;
-            init(nums);
-        }
-
-        private void init(int[] nums) {
-            b = new int[n + 1];
-            for(int i = 1;i <= nums.length;i++) {
-                int k = i;
-                while(k <= n) {
-                    b[k] += nums[i - 1];
-                    k += (k & -k);
-                }
-            }
-        }
-
-        public void update(int i, int val) {
-            int tmp = arr[i];
-            arr[i] = val;
-            int k = i + 1;
-            while(k <= n) {
-                b[k] -= tmp;
-                b[k] += val;
-                k += (k & -k);
-            }
-        }
-
-        public int sum(int l, int r) {
-            return sum(r + 1) - sum(l);
-        }
-
-        private int sum(int r) {
-            int sum = 0;
-            while(r > 0) {
-                sum += b[r];
-                r -= (r & -r);
-            }
-
-            return sum;
-        }
     }
 ```。">
 <meta property="og:title" content="树状数组">
@@ -114,52 +68,6 @@ static class FenwickTree {
 **模板**
 ```java
 static class FenwickTree {
-        int[] arr;
-        int[] b;
-        int n;
-
-        public FenwickTree(int[] nums) {
-            this.arr = nums;
-            n = nums.length;
-            init(nums);
-        }
-
-        private void init(int[] nums) {
-            b = new int[n + 1];
-            for(int i = 1;i <= nums.length;i++) {
-                int k = i;
-                while(k <= n) {
-                    b[k] += nums[i - 1];
-                    k += (k & -k);
-                }
-            }
-        }
-
-        public void update(int i, int val) {
-            int tmp = arr[i];
-            arr[i] = val;
-            int k = i + 1;
-            while(k <= n) {
-                b[k] -= tmp;
-                b[k] += val;
-                k += (k & -k);
-            }
-        }
-
-        public int sum(int l, int r) {
-            return sum(r + 1) - sum(l);
-        }
-
-        private int sum(int r) {
-            int sum = 0;
-            while(r > 0) {
-                sum += b[r];
-                r -= (r & -r);
-            }
-
-            return sum;
-        }
-    }static class FenwickTree {
         int[] arr;
         int[] b;
         int n;
@@ -280,52 +188,6 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <div class="markdown-body" id="postBody"><h4>树状数组</h4>
 <p><strong>模板</strong></p>
 <div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">static</span> <span class="pl-k">class</span> <span class="pl-smi">FenwickTree</span> {
-        <span class="pl-smi">int</span>[] <span class="pl-s1">arr</span>;
-        <span class="pl-smi">int</span>[] <span class="pl-s1">b</span>;
-        <span class="pl-smi">int</span> <span class="pl-s1">n</span>;
-
-        <span class="pl-k">public</span> <span class="pl-smi">FenwickTree</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>) {
-            <span class="pl-smi">this</span>.<span class="pl-s1">arr</span> = <span class="pl-s1">nums</span>;
-            <span class="pl-s1">n</span> = <span class="pl-s1">nums</span>.<span class="pl-s1">length</span>;
-            <span class="pl-en">init</span>(<span class="pl-s1">nums</span>);
-        }
-
-        <span class="pl-k">private</span> <span class="pl-smi">void</span> <span class="pl-en">init</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>) {
-            <span class="pl-s1">b</span> = <span class="pl-k">new</span> <span class="pl-smi">int</span>[<span class="pl-s1">n</span> + <span class="pl-c1">1</span>];
-            <span class="pl-k">for</span>(<span class="pl-smi">int</span> <span class="pl-s1">i</span> = <span class="pl-c1">1</span>;<span class="pl-s1">i</span> &lt;= <span class="pl-s1">nums</span>.<span class="pl-s1">length</span>;<span class="pl-s1">i</span>++) {
-                <span class="pl-smi">int</span> <span class="pl-s1">k</span> = <span class="pl-s1">i</span>;
-                <span class="pl-k">while</span>(<span class="pl-s1">k</span> &lt;= <span class="pl-s1">n</span>) {
-                    <span class="pl-s1">b</span>[<span class="pl-s1">k</span>] += <span class="pl-s1">nums</span>[<span class="pl-s1">i</span> - <span class="pl-c1">1</span>];
-                    <span class="pl-s1">k</span> += (<span class="pl-s1">k</span> &amp; -<span class="pl-s1">k</span>);
-                }
-            }
-        }
-
-        <span class="pl-k">public</span> <span class="pl-smi">void</span> <span class="pl-en">update</span>(<span class="pl-smi">int</span> <span class="pl-s1">i</span>, <span class="pl-smi">int</span> <span class="pl-s1">val</span>) {
-            <span class="pl-smi">int</span> <span class="pl-s1">tmp</span> = <span class="pl-s1">arr</span>[<span class="pl-s1">i</span>];
-            <span class="pl-s1">arr</span>[<span class="pl-s1">i</span>] = <span class="pl-s1">val</span>;
-            <span class="pl-smi">int</span> <span class="pl-s1">k</span> = <span class="pl-s1">i</span> + <span class="pl-c1">1</span>;
-            <span class="pl-k">while</span>(<span class="pl-s1">k</span> &lt;= <span class="pl-s1">n</span>) {
-                <span class="pl-s1">b</span>[<span class="pl-s1">k</span>] -= <span class="pl-s1">tmp</span>;
-                <span class="pl-s1">b</span>[<span class="pl-s1">k</span>] += <span class="pl-s1">val</span>;
-                <span class="pl-s1">k</span> += (<span class="pl-s1">k</span> &amp; -<span class="pl-s1">k</span>);
-            }
-        }
-
-        <span class="pl-k">public</span> <span class="pl-smi">int</span> <span class="pl-en">sum</span>(<span class="pl-smi">int</span> <span class="pl-s1">l</span>, <span class="pl-smi">int</span> <span class="pl-s1">r</span>) {
-            <span class="pl-k">return</span> <span class="pl-en">sum</span>(<span class="pl-s1">r</span> + <span class="pl-c1">1</span>) - <span class="pl-en">sum</span>(<span class="pl-s1">l</span>);
-        }
-
-        <span class="pl-k">private</span> <span class="pl-smi">int</span> <span class="pl-en">sum</span>(<span class="pl-smi">int</span> <span class="pl-s1">r</span>) {
-            <span class="pl-smi">int</span> <span class="pl-s1">sum</span> = <span class="pl-c1">0</span>;
-            <span class="pl-k">while</span>(<span class="pl-s1">r</span> &gt; <span class="pl-c1">0</span>) {
-                <span class="pl-s1">sum</span> += <span class="pl-s1">b</span>[<span class="pl-s1">r</span>];
-                <span class="pl-s1">r</span> -= (<span class="pl-s1">r</span> &amp; -<span class="pl-s1">r</span>);
-            }
-
-            <span class="pl-k">return</span> <span class="pl-s1">sum</span>;
-        }
-    }<span class="pl-k">static</span> <span class="pl-k">class</span> <span class="pl-smi">FenwickTree</span> {
         <span class="pl-smi">int</span>[] <span class="pl-s1">arr</span>;
         <span class="pl-smi">int</span>[] <span class="pl-s1">b</span>;
         <span class="pl-smi">int</span> <span class="pl-s1">n</span>;
