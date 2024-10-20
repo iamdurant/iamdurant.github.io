@@ -10,14 +10,706 @@
         let theme = localStorage.getItem("meek_theme") || "light";
         document.documentElement.setAttribute("data-color-mode", theme);
     </script>
-<meta name="description" content="">
+<meta name="description" content="# RocketMQ api实战
+
+### Consumer
+
+- 推模式：broker推送消息给consumer
+- 拉模式：consumer主动从broker拉取消息
+
+> 推模式消费者
+
+```java
+package com.mq.consumer;
+
+import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+
+
+public class SyncConsumer {
+    public static void main(String[] args) throws Exception{
+        // 推模式(boroker(主动推送) -> consumer)
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer('SyncConsumer');
+
+        // set name server addr
+        consumer.setNamesrvAddr('172.24.192.134:9876');
+
+        // subscribe
+        consumer.subscribe('wwb', '*');
+
+        // consume message
+        consumer.setMessageListener((MessageListenerConcurrently) (list, consumeConcurrentlyContext) -> {
+            for(int i = 0;i < list.size();i++) {
+                System.out.println('消费一条消息');
+            }
+
+            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+        });
+
+        consumer.start();
+        System.out.println('消费者启动成功...');
+    }
+}
+```
+
+> 拉模式消费者（@deprecated）
+
+```java
+package com.mq.consumer;
+
+import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
+import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.consumer.PullStatus;
+import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
+import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.exception.RemotingException;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+public class PullConsumer {
+    @Deprecated
+    public static void main(String[] args) throws Exception{
+        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer('PullConsumer');
+
+        // set name server addr
+        consumer.setNamesrvAddr('172.24.192.134:9876');
+
+        // set register topic
+        consumer.setRegisterTopics(new HashSet<>(List.of('wwb', 'async_wwb', 'TopicTest')));
+
+        consumer.start();
+
+        while(true) {
+            consumer.getRegisterTopics().forEach(t -> {
+                try {
+                    Set<MessageQueue> queues = consumer.fetchSubscribeMessageQueues(t);
+                    queues.forEach(q -> {
+                        try {
+                            long offset = consumer.getOffsetStore().readOffset(q, ReadOffsetType.READ_FROM_MEMORY);
+                            if(offset < 0) offset = consumer.getOffsetStore().readOffset(q, ReadOffsetType.READ_FROM_STORE);
+                            if(offset < 0) offset = consumer.maxOffset(q);
+                            if(offset < 0) offset = 0;
+
+                            PullResult result = consumer.pull(q, '*', offset, 32);
+                            if(result.getPullStatus() == PullStatus.FOUND) {
+                                System.out.println('消息消费成功');
+                                consumer.updateConsumeOffset(q, result.getNextBeginOffset());
+                            }
+                        } catch (MQClientException | MQBrokerException | RemotingException | InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                } catch (MQClientException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
+    }
+}
+
+```
+
+> 拉模式消费者
+
+```java
+package com.mq.consumer;
+
+import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageQueue;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+public class LitePullConsumer {
+    public static void main(String[] args) throws Exception{
+        pullAssignQueue();
+    }
+
+    /**
+     * 随机拉取某个队列的消息
+     * @throws Exception
+     */
+    static void pullRandomQueue() throws Exception{
+        DefaultLitePullConsumer consumer = new DefaultLitePullConsumer('LitePullConsumer');
+        consumer.setNamesrvAddr('172.24.192.134:9876');
+        consumer.subscribe('wwb', '*');
+
+        consumer.start();
+
+        while(true) {
+            List<MessageExt> list = consumer.poll();
+            list.forEach(m -> {
+                byte[] body = m.getBody();
+                System.out.println('消息消费成功: ' + new String(body, StandardCharsets.UTF_8));
+            });
+        }
+    }
+
+    /**
+     * 指定拉取某个队列的消息
+     * @throws Exception
+     */
+    static void pullAssignQueue() throws Exception{
+        DefaultLitePullConsumer consumer = new DefaultLitePullConsumer('LitePullConsumer2');
+        consumer.setNamesrvAddr('172.24.192.134:9876');
+        consumer.start();
+
+        Collection<MessageQueue> queues = consumer.fetchMessageQueues('wwb');
+        ArrayList<MessageQueue> li = new ArrayList<>(queues);
+        consumer.assign(li);
+        consumer.seek(li.get(1), 0);
+
+        while(true) {
+            List<MessageExt> list = consumer.poll();
+            list.forEach(m -> {
+                System.out.println(m);
+                System.out.println('消息消费成功: ' + new String(m.getBody(), StandardCharsets.UTF_8));
+            });
+        }
+    }
+}
+```
+
+
+
+### Producer
+
+**消息发送的三种方式**
+
+- 同步发送：等待消息返回后再继续进行下面的操作，适用于并发较低以及可靠性较高的场景
+- 异步发送：不等待消息返回直接进行后续代码流程，适用于并发高的场景
+- 单向发送：只负责发送，不管消息是否发送成功，适用于日志等特殊场景
+
+
+
+> 同步生产者：
+
+```java
+package com.mq.producer;
+
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.common.message.Message;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Random;
+
+public class SyncProducer {
+    public static void main(String[] args) throws Exception{
+        DefaultMQProducer producer = new DefaultMQProducer('SyncProducer');
+
+        // set name server addr
+        producer.setNamesrvAddr('172.24.192.134:9876');
+
+        producer.start();
+
+        for(int i = 0;i < 10;i++) {
+            Message mess = new Message(
+                    'wwb',
+                    String.valueOf(i),
+                    String.valueOf(new Random().nextInt(10)).getBytes(StandardCharsets.UTF_8));
+            SendResult result = producer.send(mess);
+            System.out.println(result);
+        }
+
+        producer.shutdown();
+    }
+}
+```
+
+
+> 异步生产者
+
+```java
+package com.mq.producer;
+
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.common.message.Message;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Random;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+public class AsyncProducer {
+    public static void main(String[] args) throws Exception{
+        DefaultMQProducer producer = new DefaultMQProducer('AsyncProducer');
+
+        // set name server addr
+        producer.setNamesrvAddr('172.24.192.134:9876');
+
+        producer.start();
+        CountDownLatch cd = new CountDownLatch(10);
+        for(int i = 0;i < 10;i++) {
+            Message mess = new Message(
+                    'async_wwb',
+                    String.valueOf(i),
+                    String.valueOf(new Random().nextInt(10)).getBytes(StandardCharsets.UTF_8));
+            producer.send(mess, new SendCallback() {
+                @Override
+                public void onSuccess(SendResult sendResult) {
+                    System.out.println('消息发送成功: ' + sendResult);
+                    cd.countDown();
+                }
+
+                @Override
+                public void onException(Throwable throwable) {
+                    System.out.println('消息发送失败' + Arrays.toString(throwable.getStackTrace()));
+                    cd.countDown();
+                }
+            });
+        }
+
+        boolean await = cd.await(5, TimeUnit.SECONDS);
+        if(!await) {
+            System.out.println('部分消息丢失');
+        }
+        producer.shutdown();
+    }
+}
+```
+
+> 单向生产者
+
+```java
+package com.mq.producer;
+
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.common.message.Message;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Random;
+
+public class OneWayProducer {
+    public static void main(String[] args) throws Exception{
+        DefaultMQProducer producer = new DefaultMQProducer('OneWayProducer');
+
+        // set name server addr
+        producer.setNamesrvAddr('172.24.192.134:9876');
+
+        producer.start();
+
+        for(int i = 0;i < 10;i++) {
+            Message mess = new Message(
+                    'wwb',
+                    String.valueOf(i),
+                    String.valueOf(new Random().nextInt(10)).getBytes(StandardCharsets.UTF_8));
+            producer.sendOneway(mess);
+        }
+
+        producer.shutdown();
+    }
+}
+```
+
+
+
+### 消息类型
+
+- **Normal（普通消息）**
+- **FIFO（顺序消息）**
+- **Delay（延迟消息）**
+
+延迟消息具有18个级别：1s到2个小时
+
+几个有关的方法：
+
+1. setDelayTimeLevel() ：根据延迟级别延迟投递
+
+2. setDelayTimeMs() ：自定义延迟毫秒数
+
+3. setDelayTimeSec() ：自定义延迟秒数
+
+4. setDeliverTimeMs() ：在某个时间戳投递
+
+|延迟级别|延迟时间|
+|--- |--- |
+|1|1s|
+|2|5s|
+|3|10s|
+|4|30s|
+|5|1m|
+|6|2m|
+|7|3m|
+|8|4m|
+|9|5m|
+|10|6m|
+|11|7m|
+|12|8m|
+|13|9m|
+|14|10m|
+|15|20m|
+|16|30m|
+|17|1h|
+|18|2h|
+
+- **Transaction（事务消息）**
+
+RocketMQ 的事务消息用于保证消息和本地事务操作的最终一致性。">
 <meta property="og:title" content="RocketMQ">
-<meta property="og:description" content="">
+<meta property="og:description" content="# RocketMQ api实战
+
+### Consumer
+
+- 推模式：broker推送消息给consumer
+- 拉模式：consumer主动从broker拉取消息
+
+> 推模式消费者
+
+```java
+package com.mq.consumer;
+
+import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+
+
+public class SyncConsumer {
+    public static void main(String[] args) throws Exception{
+        // 推模式(boroker(主动推送) -> consumer)
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer('SyncConsumer');
+
+        // set name server addr
+        consumer.setNamesrvAddr('172.24.192.134:9876');
+
+        // subscribe
+        consumer.subscribe('wwb', '*');
+
+        // consume message
+        consumer.setMessageListener((MessageListenerConcurrently) (list, consumeConcurrentlyContext) -> {
+            for(int i = 0;i < list.size();i++) {
+                System.out.println('消费一条消息');
+            }
+
+            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+        });
+
+        consumer.start();
+        System.out.println('消费者启动成功...');
+    }
+}
+```
+
+> 拉模式消费者（@deprecated）
+
+```java
+package com.mq.consumer;
+
+import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
+import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.consumer.PullStatus;
+import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
+import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.exception.RemotingException;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+public class PullConsumer {
+    @Deprecated
+    public static void main(String[] args) throws Exception{
+        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer('PullConsumer');
+
+        // set name server addr
+        consumer.setNamesrvAddr('172.24.192.134:9876');
+
+        // set register topic
+        consumer.setRegisterTopics(new HashSet<>(List.of('wwb', 'async_wwb', 'TopicTest')));
+
+        consumer.start();
+
+        while(true) {
+            consumer.getRegisterTopics().forEach(t -> {
+                try {
+                    Set<MessageQueue> queues = consumer.fetchSubscribeMessageQueues(t);
+                    queues.forEach(q -> {
+                        try {
+                            long offset = consumer.getOffsetStore().readOffset(q, ReadOffsetType.READ_FROM_MEMORY);
+                            if(offset < 0) offset = consumer.getOffsetStore().readOffset(q, ReadOffsetType.READ_FROM_STORE);
+                            if(offset < 0) offset = consumer.maxOffset(q);
+                            if(offset < 0) offset = 0;
+
+                            PullResult result = consumer.pull(q, '*', offset, 32);
+                            if(result.getPullStatus() == PullStatus.FOUND) {
+                                System.out.println('消息消费成功');
+                                consumer.updateConsumeOffset(q, result.getNextBeginOffset());
+                            }
+                        } catch (MQClientException | MQBrokerException | RemotingException | InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                } catch (MQClientException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
+    }
+}
+
+```
+
+> 拉模式消费者
+
+```java
+package com.mq.consumer;
+
+import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageQueue;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+public class LitePullConsumer {
+    public static void main(String[] args) throws Exception{
+        pullAssignQueue();
+    }
+
+    /**
+     * 随机拉取某个队列的消息
+     * @throws Exception
+     */
+    static void pullRandomQueue() throws Exception{
+        DefaultLitePullConsumer consumer = new DefaultLitePullConsumer('LitePullConsumer');
+        consumer.setNamesrvAddr('172.24.192.134:9876');
+        consumer.subscribe('wwb', '*');
+
+        consumer.start();
+
+        while(true) {
+            List<MessageExt> list = consumer.poll();
+            list.forEach(m -> {
+                byte[] body = m.getBody();
+                System.out.println('消息消费成功: ' + new String(body, StandardCharsets.UTF_8));
+            });
+        }
+    }
+
+    /**
+     * 指定拉取某个队列的消息
+     * @throws Exception
+     */
+    static void pullAssignQueue() throws Exception{
+        DefaultLitePullConsumer consumer = new DefaultLitePullConsumer('LitePullConsumer2');
+        consumer.setNamesrvAddr('172.24.192.134:9876');
+        consumer.start();
+
+        Collection<MessageQueue> queues = consumer.fetchMessageQueues('wwb');
+        ArrayList<MessageQueue> li = new ArrayList<>(queues);
+        consumer.assign(li);
+        consumer.seek(li.get(1), 0);
+
+        while(true) {
+            List<MessageExt> list = consumer.poll();
+            list.forEach(m -> {
+                System.out.println(m);
+                System.out.println('消息消费成功: ' + new String(m.getBody(), StandardCharsets.UTF_8));
+            });
+        }
+    }
+}
+```
+
+
+
+### Producer
+
+**消息发送的三种方式**
+
+- 同步发送：等待消息返回后再继续进行下面的操作，适用于并发较低以及可靠性较高的场景
+- 异步发送：不等待消息返回直接进行后续代码流程，适用于并发高的场景
+- 单向发送：只负责发送，不管消息是否发送成功，适用于日志等特殊场景
+
+
+
+> 同步生产者：
+
+```java
+package com.mq.producer;
+
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.common.message.Message;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Random;
+
+public class SyncProducer {
+    public static void main(String[] args) throws Exception{
+        DefaultMQProducer producer = new DefaultMQProducer('SyncProducer');
+
+        // set name server addr
+        producer.setNamesrvAddr('172.24.192.134:9876');
+
+        producer.start();
+
+        for(int i = 0;i < 10;i++) {
+            Message mess = new Message(
+                    'wwb',
+                    String.valueOf(i),
+                    String.valueOf(new Random().nextInt(10)).getBytes(StandardCharsets.UTF_8));
+            SendResult result = producer.send(mess);
+            System.out.println(result);
+        }
+
+        producer.shutdown();
+    }
+}
+```
+
+
+> 异步生产者
+
+```java
+package com.mq.producer;
+
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.common.message.Message;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Random;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+public class AsyncProducer {
+    public static void main(String[] args) throws Exception{
+        DefaultMQProducer producer = new DefaultMQProducer('AsyncProducer');
+
+        // set name server addr
+        producer.setNamesrvAddr('172.24.192.134:9876');
+
+        producer.start();
+        CountDownLatch cd = new CountDownLatch(10);
+        for(int i = 0;i < 10;i++) {
+            Message mess = new Message(
+                    'async_wwb',
+                    String.valueOf(i),
+                    String.valueOf(new Random().nextInt(10)).getBytes(StandardCharsets.UTF_8));
+            producer.send(mess, new SendCallback() {
+                @Override
+                public void onSuccess(SendResult sendResult) {
+                    System.out.println('消息发送成功: ' + sendResult);
+                    cd.countDown();
+                }
+
+                @Override
+                public void onException(Throwable throwable) {
+                    System.out.println('消息发送失败' + Arrays.toString(throwable.getStackTrace()));
+                    cd.countDown();
+                }
+            });
+        }
+
+        boolean await = cd.await(5, TimeUnit.SECONDS);
+        if(!await) {
+            System.out.println('部分消息丢失');
+        }
+        producer.shutdown();
+    }
+}
+```
+
+> 单向生产者
+
+```java
+package com.mq.producer;
+
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.common.message.Message;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Random;
+
+public class OneWayProducer {
+    public static void main(String[] args) throws Exception{
+        DefaultMQProducer producer = new DefaultMQProducer('OneWayProducer');
+
+        // set name server addr
+        producer.setNamesrvAddr('172.24.192.134:9876');
+
+        producer.start();
+
+        for(int i = 0;i < 10;i++) {
+            Message mess = new Message(
+                    'wwb',
+                    String.valueOf(i),
+                    String.valueOf(new Random().nextInt(10)).getBytes(StandardCharsets.UTF_8));
+            producer.sendOneway(mess);
+        }
+
+        producer.shutdown();
+    }
+}
+```
+
+
+
+### 消息类型
+
+- **Normal（普通消息）**
+- **FIFO（顺序消息）**
+- **Delay（延迟消息）**
+
+延迟消息具有18个级别：1s到2个小时
+
+几个有关的方法：
+
+1. setDelayTimeLevel() ：根据延迟级别延迟投递
+
+2. setDelayTimeMs() ：自定义延迟毫秒数
+
+3. setDelayTimeSec() ：自定义延迟秒数
+
+4. setDeliverTimeMs() ：在某个时间戳投递
+
+|延迟级别|延迟时间|
+|--- |--- |
+|1|1s|
+|2|5s|
+|3|10s|
+|4|30s|
+|5|1m|
+|6|2m|
+|7|3m|
+|8|4m|
+|9|5m|
+|10|6m|
+|11|7m|
+|12|8m|
+|13|9m|
+|14|10m|
+|15|20m|
+|16|30m|
+|17|1h|
+|18|2h|
+
+- **Transaction（事务消息）**
+
+RocketMQ 的事务消息用于保证消息和本地事务操作的最终一致性。">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://iamdurant.github.io/post/RocketMQ.html">
 <meta property="og:image" content="https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1692271843.png">
 <title>RocketMQ</title>
-
+<link href="//unpkg.com/@wooorm/starry-night@2.1.1/style/both.css" rel="stylesheet" />
 
 
 </head>
@@ -41,7 +733,17 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
     body {padding: 8px;}
     .postTitle{font-size:24px;}
 }
-
+.copy-feedback {
+    display: none;
+    position: absolute;
+    top: 10px;
+    right: 50px;
+    color: var(--color-fg-on-emphasis);
+    background-color: var(--color-fg-muted);
+    border-radius: 3px;
+    padding: 5px 8px;
+    font-size: 12px;
+}
 </style>
 
 
@@ -73,7 +775,631 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 </div>
 </div>
     <div id="content">
-<div class="markdown-body" id="postBody"></div>
+<div class="markdown-body" id="postBody"><h1>RocketMQ api实战</h1>
+<h3>Consumer</h3>
+<ul>
+<li>推模式：broker推送消息给consumer</li>
+<li>拉模式：consumer主动从broker拉取消息</li>
+</ul>
+<blockquote>
+<p>推模式消费者</p>
+</blockquote>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">package</span> <span class="pl-s1">com</span>.<span class="pl-s1">mq</span>.<span class="pl-s1">consumer</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">consumer</span>.<span class="pl-s1">DefaultMQPushConsumer</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">consumer</span>.<span class="pl-s1">listener</span>.<span class="pl-s1">ConsumeConcurrentlyStatus</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">consumer</span>.<span class="pl-s1">listener</span>.<span class="pl-s1">MessageListenerConcurrently</span>;
+
+
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-smi">SyncConsumer</span> {
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
+        <span class="pl-c">// 推模式(boroker(主动推送) -&gt; consumer)</span>
+        <span class="pl-smi">DefaultMQPushConsumer</span> <span class="pl-s1">consumer</span> = <span class="pl-k">new</span> <span class="pl-smi">DefaultMQPushConsumer</span>(<span class="pl-s">"SyncConsumer"</span>);
+
+        <span class="pl-c">// set name server addr</span>
+        <span class="pl-s1">consumer</span>.<span class="pl-en">setNamesrvAddr</span>(<span class="pl-s">"172.24.192.134:9876"</span>);
+
+        <span class="pl-c">// subscribe</span>
+        <span class="pl-s1">consumer</span>.<span class="pl-en">subscribe</span>(<span class="pl-s">"wwb"</span>, <span class="pl-s">"*"</span>);
+
+        <span class="pl-c">// consume message</span>
+        <span class="pl-s1">consumer</span>.<span class="pl-en">setMessageListener</span>((<span class="pl-smi">MessageListenerConcurrently</span>) (<span class="pl-s1">list</span>, <span class="pl-s1">consumeConcurrentlyContext</span>) -&gt; {
+            <span class="pl-k">for</span>(<span class="pl-smi">int</span> <span class="pl-s1">i</span> = <span class="pl-c1">0</span>;<span class="pl-s1">i</span> &lt; <span class="pl-s1">list</span>.<span class="pl-en">size</span>();<span class="pl-s1">i</span>++) {
+                <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s">"消费一条消息"</span>);
+            }
+
+            <span class="pl-k">return</span> <span class="pl-smi">ConsumeConcurrentlyStatus</span>.<span class="pl-c1">CONSUME_SUCCESS</span>;
+        });
+
+        <span class="pl-s1">consumer</span>.<span class="pl-en">start</span>();
+        <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s">"消费者启动成功..."</span>);
+    }
+}</pre></div>
+<blockquote>
+<p>拉模式消费者（<a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/deprecated/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/deprecated">@deprecated</a>）</p>
+</blockquote>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">package</span> <span class="pl-s1">com</span>.<span class="pl-s1">mq</span>.<span class="pl-s1">consumer</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">consumer</span>.<span class="pl-s1">DefaultMQPullConsumer</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">consumer</span>.<span class="pl-s1">PullResult</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">consumer</span>.<span class="pl-s1">PullStatus</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">consumer</span>.<span class="pl-s1">store</span>.<span class="pl-s1">ReadOffsetType</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">exception</span>.<span class="pl-s1">MQBrokerException</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">exception</span>.<span class="pl-s1">MQClientException</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">common</span>.<span class="pl-s1">message</span>.<span class="pl-s1">MessageQueue</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">remoting</span>.<span class="pl-s1">exception</span>.<span class="pl-s1">RemotingException</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">util</span>.<span class="pl-s1">HashSet</span>;
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">util</span>.<span class="pl-s1">List</span>;
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">util</span>.<span class="pl-s1">Set</span>;
+
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-smi">PullConsumer</span> {
+    <span class="pl-c1">@</span><span class="pl-c1">Deprecated</span>
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
+        <span class="pl-smi">DefaultMQPullConsumer</span> <span class="pl-s1">consumer</span> = <span class="pl-k">new</span> <span class="pl-smi">DefaultMQPullConsumer</span>(<span class="pl-s">"PullConsumer"</span>);
+
+        <span class="pl-c">// set name server addr</span>
+        <span class="pl-s1">consumer</span>.<span class="pl-en">setNamesrvAddr</span>(<span class="pl-s">"172.24.192.134:9876"</span>);
+
+        <span class="pl-c">// set register topic</span>
+        <span class="pl-s1">consumer</span>.<span class="pl-en">setRegisterTopics</span>(<span class="pl-k">new</span> <span class="pl-smi">HashSet</span>&lt;&gt;(<span class="pl-smi">List</span>.<span class="pl-en">of</span>(<span class="pl-s">"wwb"</span>, <span class="pl-s">"async_wwb"</span>, <span class="pl-s">"TopicTest"</span>)));
+
+        <span class="pl-s1">consumer</span>.<span class="pl-en">start</span>();
+
+        <span class="pl-k">while</span>(<span class="pl-c1">true</span>) {
+            <span class="pl-s1">consumer</span>.<span class="pl-en">getRegisterTopics</span>().<span class="pl-en">forEach</span>(<span class="pl-s1">t</span> -&gt; {
+                <span class="pl-k">try</span> {
+                    <span class="pl-smi">Set</span>&lt;<span class="pl-smi">MessageQueue</span>&gt; <span class="pl-s1">queues</span> = <span class="pl-s1">consumer</span>.<span class="pl-en">fetchSubscribeMessageQueues</span>(<span class="pl-s1">t</span>);
+                    <span class="pl-s1">queues</span>.<span class="pl-en">forEach</span>(<span class="pl-s1">q</span> -&gt; {
+                        <span class="pl-k">try</span> {
+                            <span class="pl-smi">long</span> <span class="pl-s1">offset</span> = <span class="pl-s1">consumer</span>.<span class="pl-en">getOffsetStore</span>().<span class="pl-en">readOffset</span>(<span class="pl-s1">q</span>, <span class="pl-smi">ReadOffsetType</span>.<span class="pl-c1">READ_FROM_MEMORY</span>);
+                            <span class="pl-k">if</span>(<span class="pl-s1">offset</span> &lt; <span class="pl-c1">0</span>) <span class="pl-s1">offset</span> = <span class="pl-s1">consumer</span>.<span class="pl-en">getOffsetStore</span>().<span class="pl-en">readOffset</span>(<span class="pl-s1">q</span>, <span class="pl-smi">ReadOffsetType</span>.<span class="pl-c1">READ_FROM_STORE</span>);
+                            <span class="pl-k">if</span>(<span class="pl-s1">offset</span> &lt; <span class="pl-c1">0</span>) <span class="pl-s1">offset</span> = <span class="pl-s1">consumer</span>.<span class="pl-en">maxOffset</span>(<span class="pl-s1">q</span>);
+                            <span class="pl-k">if</span>(<span class="pl-s1">offset</span> &lt; <span class="pl-c1">0</span>) <span class="pl-s1">offset</span> = <span class="pl-c1">0</span>;
+
+                            <span class="pl-smi">PullResult</span> <span class="pl-s1">result</span> = <span class="pl-s1">consumer</span>.<span class="pl-en">pull</span>(<span class="pl-s1">q</span>, <span class="pl-s">"*"</span>, <span class="pl-s1">offset</span>, <span class="pl-c1">32</span>);
+                            <span class="pl-k">if</span>(<span class="pl-s1">result</span>.<span class="pl-en">getPullStatus</span>() == <span class="pl-smi">PullStatus</span>.<span class="pl-c1">FOUND</span>) {
+                                <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s">"消息消费成功"</span>);
+                                <span class="pl-s1">consumer</span>.<span class="pl-en">updateConsumeOffset</span>(<span class="pl-s1">q</span>, <span class="pl-s1">result</span>.<span class="pl-en">getNextBeginOffset</span>());
+                            }
+                        } <span class="pl-k">catch</span> (<span class="pl-smi">MQClientException</span> | <span class="pl-smi">MQBrokerException</span> | <span class="pl-smi">RemotingException</span> | <span class="pl-smi">InterruptedException</span> <span class="pl-s1">e</span>) {
+                            <span class="pl-k">throw</span> <span class="pl-k">new</span> <span class="pl-smi">RuntimeException</span>(<span class="pl-s1">e</span>);
+                        }
+                    });
+                } <span class="pl-k">catch</span> (<span class="pl-smi">MQClientException</span> <span class="pl-s1">e</span>) {
+                    <span class="pl-k">throw</span> <span class="pl-k">new</span> <span class="pl-smi">RuntimeException</span>(<span class="pl-s1">e</span>);
+                }
+            });
+        }
+    }
+}</pre></div>
+<blockquote>
+<p>拉模式消费者</p>
+</blockquote>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">package</span> <span class="pl-s1">com</span>.<span class="pl-s1">mq</span>.<span class="pl-s1">consumer</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">consumer</span>.<span class="pl-s1">DefaultLitePullConsumer</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">common</span>.<span class="pl-s1">message</span>.<span class="pl-s1">MessageExt</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">common</span>.<span class="pl-s1">message</span>.<span class="pl-s1">MessageQueue</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">nio</span>.<span class="pl-s1">charset</span>.<span class="pl-s1">StandardCharsets</span>;
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">util</span>.<span class="pl-s1">ArrayList</span>;
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">util</span>.<span class="pl-s1">Collection</span>;
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">util</span>.<span class="pl-s1">List</span>;
+
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-smi">LitePullConsumer</span> {
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
+        <span class="pl-en">pullAssignQueue</span>();
+    }
+
+    <span class="pl-c">/**</span>
+<span class="pl-c">     * 随机拉取某个队列的消息</span>
+<span class="pl-c">     * @throws Exception</span>
+<span class="pl-c">     */</span>
+    <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">pullRandomQueue</span>() <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
+        <span class="pl-smi">DefaultLitePullConsumer</span> <span class="pl-s1">consumer</span> = <span class="pl-k">new</span> <span class="pl-smi">DefaultLitePullConsumer</span>(<span class="pl-s">"LitePullConsumer"</span>);
+        <span class="pl-s1">consumer</span>.<span class="pl-en">setNamesrvAddr</span>(<span class="pl-s">"172.24.192.134:9876"</span>);
+        <span class="pl-s1">consumer</span>.<span class="pl-en">subscribe</span>(<span class="pl-s">"wwb"</span>, <span class="pl-s">"*"</span>);
+
+        <span class="pl-s1">consumer</span>.<span class="pl-en">start</span>();
+
+        <span class="pl-k">while</span>(<span class="pl-c1">true</span>) {
+            <span class="pl-smi">List</span>&lt;<span class="pl-smi">MessageExt</span>&gt; <span class="pl-s1">list</span> = <span class="pl-s1">consumer</span>.<span class="pl-en">poll</span>();
+            <span class="pl-s1">list</span>.<span class="pl-en">forEach</span>(<span class="pl-s1">m</span> -&gt; {
+                <span class="pl-smi">byte</span>[] <span class="pl-s1">body</span> = <span class="pl-s1">m</span>.<span class="pl-en">getBody</span>();
+                <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s">"消息消费成功: "</span> + <span class="pl-k">new</span> <span class="pl-smi">String</span>(<span class="pl-s1">body</span>, <span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>));
+            });
+        }
+    }
+
+    <span class="pl-c">/**</span>
+<span class="pl-c">     * 指定拉取某个队列的消息</span>
+<span class="pl-c">     * @throws Exception</span>
+<span class="pl-c">     */</span>
+    <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">pullAssignQueue</span>() <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
+        <span class="pl-smi">DefaultLitePullConsumer</span> <span class="pl-s1">consumer</span> = <span class="pl-k">new</span> <span class="pl-smi">DefaultLitePullConsumer</span>(<span class="pl-s">"LitePullConsumer2"</span>);
+        <span class="pl-s1">consumer</span>.<span class="pl-en">setNamesrvAddr</span>(<span class="pl-s">"172.24.192.134:9876"</span>);
+        <span class="pl-s1">consumer</span>.<span class="pl-en">start</span>();
+
+        <span class="pl-smi">Collection</span>&lt;<span class="pl-smi">MessageQueue</span>&gt; <span class="pl-s1">queues</span> = <span class="pl-s1">consumer</span>.<span class="pl-en">fetchMessageQueues</span>(<span class="pl-s">"wwb"</span>);
+        <span class="pl-smi">ArrayList</span>&lt;<span class="pl-smi">MessageQueue</span>&gt; <span class="pl-s1">li</span> = <span class="pl-k">new</span> <span class="pl-smi">ArrayList</span>&lt;&gt;(<span class="pl-s1">queues</span>);
+        <span class="pl-s1">consumer</span>.<span class="pl-en">assign</span>(<span class="pl-s1">li</span>);
+        <span class="pl-s1">consumer</span>.<span class="pl-en">seek</span>(<span class="pl-s1">li</span>.<span class="pl-en">get</span>(<span class="pl-c1">1</span>), <span class="pl-c1">0</span>);
+
+        <span class="pl-k">while</span>(<span class="pl-c1">true</span>) {
+            <span class="pl-smi">List</span>&lt;<span class="pl-smi">MessageExt</span>&gt; <span class="pl-s1">list</span> = <span class="pl-s1">consumer</span>.<span class="pl-en">poll</span>();
+            <span class="pl-s1">list</span>.<span class="pl-en">forEach</span>(<span class="pl-s1">m</span> -&gt; {
+                <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s1">m</span>);
+                <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s">"消息消费成功: "</span> + <span class="pl-k">new</span> <span class="pl-smi">String</span>(<span class="pl-s1">m</span>.<span class="pl-en">getBody</span>(), <span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>));
+            });
+        }
+    }
+}</pre></div>
+<h3>Producer</h3>
+<p><strong>消息发送的三种方式</strong></p>
+<ul>
+<li>同步发送：等待消息返回后再继续进行下面的操作，适用于并发较低以及可靠性较高的场景</li>
+<li>异步发送：不等待消息返回直接进行后续代码流程，适用于并发高的场景</li>
+<li>单向发送：只负责发送，不管消息是否发送成功，适用于日志等特殊场景</li>
+</ul>
+<blockquote>
+<p>同步生产者：</p>
+</blockquote>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">package</span> <span class="pl-s1">com</span>.<span class="pl-s1">mq</span>.<span class="pl-s1">producer</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">producer</span>.<span class="pl-s1">DefaultMQProducer</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">producer</span>.<span class="pl-s1">SendResult</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">common</span>.<span class="pl-s1">message</span>.<span class="pl-s1">Message</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">nio</span>.<span class="pl-s1">charset</span>.<span class="pl-s1">StandardCharsets</span>;
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">util</span>.<span class="pl-s1">Random</span>;
+
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-smi">SyncProducer</span> {
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
+        <span class="pl-smi">DefaultMQProducer</span> <span class="pl-s1">producer</span> = <span class="pl-k">new</span> <span class="pl-smi">DefaultMQProducer</span>(<span class="pl-s">"SyncProducer"</span>);
+
+        <span class="pl-c">// set name server addr</span>
+        <span class="pl-s1">producer</span>.<span class="pl-en">setNamesrvAddr</span>(<span class="pl-s">"172.24.192.134:9876"</span>);
+
+        <span class="pl-s1">producer</span>.<span class="pl-en">start</span>();
+
+        <span class="pl-k">for</span>(<span class="pl-smi">int</span> <span class="pl-s1">i</span> = <span class="pl-c1">0</span>;<span class="pl-s1">i</span> &lt; <span class="pl-c1">10</span>;<span class="pl-s1">i</span>++) {
+            <span class="pl-smi">Message</span> <span class="pl-s1">mess</span> = <span class="pl-k">new</span> <span class="pl-smi">Message</span>(
+                    <span class="pl-s">"wwb"</span>,
+                    <span class="pl-smi">String</span>.<span class="pl-en">valueOf</span>(<span class="pl-s1">i</span>),
+                    <span class="pl-smi">String</span>.<span class="pl-en">valueOf</span>(<span class="pl-k">new</span> <span class="pl-smi">Random</span>().<span class="pl-en">nextInt</span>(<span class="pl-c1">10</span>)).<span class="pl-en">getBytes</span>(<span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>));
+            <span class="pl-smi">SendResult</span> <span class="pl-s1">result</span> = <span class="pl-s1">producer</span>.<span class="pl-en">send</span>(<span class="pl-s1">mess</span>);
+            <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s1">result</span>);
+        }
+
+        <span class="pl-s1">producer</span>.<span class="pl-en">shutdown</span>();
+    }
+}</pre></div>
+<blockquote>
+<p>异步生产者</p>
+</blockquote>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">package</span> <span class="pl-s1">com</span>.<span class="pl-s1">mq</span>.<span class="pl-s1">producer</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">producer</span>.<span class="pl-s1">DefaultMQProducer</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">producer</span>.<span class="pl-s1">SendCallback</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">producer</span>.<span class="pl-s1">SendResult</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">common</span>.<span class="pl-s1">message</span>.<span class="pl-s1">Message</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">nio</span>.<span class="pl-s1">charset</span>.<span class="pl-s1">StandardCharsets</span>;
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">util</span>.<span class="pl-s1">Arrays</span>;
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">util</span>.<span class="pl-s1">Random</span>;
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">util</span>.<span class="pl-s1">concurrent</span>.<span class="pl-s1">CountDownLatch</span>;
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">util</span>.<span class="pl-s1">concurrent</span>.<span class="pl-s1">TimeUnit</span>;
+
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-smi">AsyncProducer</span> {
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
+        <span class="pl-smi">DefaultMQProducer</span> <span class="pl-s1">producer</span> = <span class="pl-k">new</span> <span class="pl-smi">DefaultMQProducer</span>(<span class="pl-s">"AsyncProducer"</span>);
+
+        <span class="pl-c">// set name server addr</span>
+        <span class="pl-s1">producer</span>.<span class="pl-en">setNamesrvAddr</span>(<span class="pl-s">"172.24.192.134:9876"</span>);
+
+        <span class="pl-s1">producer</span>.<span class="pl-en">start</span>();
+        <span class="pl-smi">CountDownLatch</span> <span class="pl-s1">cd</span> = <span class="pl-k">new</span> <span class="pl-smi">CountDownLatch</span>(<span class="pl-c1">10</span>);
+        <span class="pl-k">for</span>(<span class="pl-smi">int</span> <span class="pl-s1">i</span> = <span class="pl-c1">0</span>;<span class="pl-s1">i</span> &lt; <span class="pl-c1">10</span>;<span class="pl-s1">i</span>++) {
+            <span class="pl-smi">Message</span> <span class="pl-s1">mess</span> = <span class="pl-k">new</span> <span class="pl-smi">Message</span>(
+                    <span class="pl-s">"async_wwb"</span>,
+                    <span class="pl-smi">String</span>.<span class="pl-en">valueOf</span>(<span class="pl-s1">i</span>),
+                    <span class="pl-smi">String</span>.<span class="pl-en">valueOf</span>(<span class="pl-k">new</span> <span class="pl-smi">Random</span>().<span class="pl-en">nextInt</span>(<span class="pl-c1">10</span>)).<span class="pl-en">getBytes</span>(<span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>));
+            <span class="pl-s1">producer</span>.<span class="pl-en">send</span>(<span class="pl-s1">mess</span>, <span class="pl-k">new</span> <span class="pl-smi">SendCallback</span>() {
+                <span class="pl-c1">@</span><span class="pl-c1">Override</span>
+                <span class="pl-k">public</span> <span class="pl-smi">void</span> <span class="pl-en">onSuccess</span>(<span class="pl-smi">SendResult</span> <span class="pl-s1">sendResult</span>) {
+                    <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s">"消息发送成功: "</span> + <span class="pl-s1">sendResult</span>);
+                    <span class="pl-s1">cd</span>.<span class="pl-en">countDown</span>();
+                }
+
+                <span class="pl-c1">@</span><span class="pl-c1">Override</span>
+                <span class="pl-k">public</span> <span class="pl-smi">void</span> <span class="pl-en">onException</span>(<span class="pl-smi">Throwable</span> <span class="pl-s1">throwable</span>) {
+                    <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s">"消息发送失败"</span> + <span class="pl-smi">Arrays</span>.<span class="pl-en">toString</span>(<span class="pl-s1">throwable</span>.<span class="pl-en">getStackTrace</span>()));
+                    <span class="pl-s1">cd</span>.<span class="pl-en">countDown</span>();
+                }
+            });
+        }
+
+        <span class="pl-smi">boolean</span> <span class="pl-s1">await</span> = <span class="pl-s1">cd</span>.<span class="pl-en">await</span>(<span class="pl-c1">5</span>, <span class="pl-smi">TimeUnit</span>.<span class="pl-c1">SECONDS</span>);
+        <span class="pl-k">if</span>(!<span class="pl-s1">await</span>) {
+            <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s">"部分消息丢失"</span>);
+        }
+        <span class="pl-s1">producer</span>.<span class="pl-en">shutdown</span>();
+    }
+}</pre></div>
+<blockquote>
+<p>单向生产者</p>
+</blockquote>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">package</span> <span class="pl-s1">com</span>.<span class="pl-s1">mq</span>.<span class="pl-s1">producer</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">producer</span>.<span class="pl-s1">DefaultMQProducer</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">common</span>.<span class="pl-s1">message</span>.<span class="pl-s1">Message</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">nio</span>.<span class="pl-s1">charset</span>.<span class="pl-s1">StandardCharsets</span>;
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">util</span>.<span class="pl-s1">Random</span>;
+
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-smi">OneWayProducer</span> {
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
+        <span class="pl-smi">DefaultMQProducer</span> <span class="pl-s1">producer</span> = <span class="pl-k">new</span> <span class="pl-smi">DefaultMQProducer</span>(<span class="pl-s">"OneWayProducer"</span>);
+
+        <span class="pl-c">// set name server addr</span>
+        <span class="pl-s1">producer</span>.<span class="pl-en">setNamesrvAddr</span>(<span class="pl-s">"172.24.192.134:9876"</span>);
+
+        <span class="pl-s1">producer</span>.<span class="pl-en">start</span>();
+
+        <span class="pl-k">for</span>(<span class="pl-smi">int</span> <span class="pl-s1">i</span> = <span class="pl-c1">0</span>;<span class="pl-s1">i</span> &lt; <span class="pl-c1">10</span>;<span class="pl-s1">i</span>++) {
+            <span class="pl-smi">Message</span> <span class="pl-s1">mess</span> = <span class="pl-k">new</span> <span class="pl-smi">Message</span>(
+                    <span class="pl-s">"wwb"</span>,
+                    <span class="pl-smi">String</span>.<span class="pl-en">valueOf</span>(<span class="pl-s1">i</span>),
+                    <span class="pl-smi">String</span>.<span class="pl-en">valueOf</span>(<span class="pl-k">new</span> <span class="pl-smi">Random</span>().<span class="pl-en">nextInt</span>(<span class="pl-c1">10</span>)).<span class="pl-en">getBytes</span>(<span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>));
+            <span class="pl-s1">producer</span>.<span class="pl-en">sendOneway</span>(<span class="pl-s1">mess</span>);
+        }
+
+        <span class="pl-s1">producer</span>.<span class="pl-en">shutdown</span>();
+    }
+}</pre></div>
+<h3>消息类型</h3>
+<ul>
+<li><strong>Normal（普通消息）</strong></li>
+<li><strong>FIFO（顺序消息）</strong></li>
+<li><strong>Delay（延迟消息）</strong></li>
+</ul>
+<p>延迟消息具有18个级别：1s到2个小时</p>
+<p>几个有关的方法：</p>
+<ol>
+<li>
+<p>setDelayTimeLevel() ：根据延迟级别延迟投递</p>
+</li>
+<li>
+<p>setDelayTimeMs() ：自定义延迟毫秒数</p>
+</li>
+<li>
+<p>setDelayTimeSec() ：自定义延迟秒数</p>
+</li>
+<li>
+<p>setDeliverTimeMs() ：在某个时间戳投递</p>
+</li>
+</ol>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>延迟级别</th>
+<th>延迟时间</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>1s</td>
+</tr>
+<tr>
+<td>2</td>
+<td>5s</td>
+</tr>
+<tr>
+<td>3</td>
+<td>10s</td>
+</tr>
+<tr>
+<td>4</td>
+<td>30s</td>
+</tr>
+<tr>
+<td>5</td>
+<td>1m</td>
+</tr>
+<tr>
+<td>6</td>
+<td>2m</td>
+</tr>
+<tr>
+<td>7</td>
+<td>3m</td>
+</tr>
+<tr>
+<td>8</td>
+<td>4m</td>
+</tr>
+<tr>
+<td>9</td>
+<td>5m</td>
+</tr>
+<tr>
+<td>10</td>
+<td>6m</td>
+</tr>
+<tr>
+<td>11</td>
+<td>7m</td>
+</tr>
+<tr>
+<td>12</td>
+<td>8m</td>
+</tr>
+<tr>
+<td>13</td>
+<td>9m</td>
+</tr>
+<tr>
+<td>14</td>
+<td>10m</td>
+</tr>
+<tr>
+<td>15</td>
+<td>20m</td>
+</tr>
+<tr>
+<td>16</td>
+<td>30m</td>
+</tr>
+<tr>
+<td>17</td>
+<td>1h</td>
+</tr>
+<tr>
+<td>18</td>
+<td>2h</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<ul>
+<li><strong>Transaction（事务消息）</strong></li>
+</ul>
+<p>RocketMQ 的事务消息用于保证消息和本地事务操作的最终一致性。通常用于需要将消息发送与数据库或其他外部系统的事务操作结合在一起的场景。事务消息可以保证消息只会在事务成功时被消费，如果事务失败，消息也不会被消费。这非常类似于分布式事务的一种实现。</p>
+<p><strong>常见应用场景</strong></p>
+<ul>
+<li>电商系统中下单与扣库存操作</li>
+<li>支付系统中扣款与生成支付通知操作</li>
+<li>金融系统中资金转账和账务更新操作</li>
+</ul>
+<p><strong>事务消息的执行流程</strong></p>
+<ol>
+<li>发送半事务消息，生产者先发送一条<strong>半事务消息</strong>到 RocketMQ Broker，消息暂时不会被消费者消费。此时消息的状态是“未决状态”</li>
+<li>执行本地事务，生产者执行本地事务（如数据库更新操作）。如果本地事务成功，提交消息；如果失败，回滚消息</li>
+<li>Broker回查，当 Broker 没有收到生产者的事务提交或回滚的确认时，它会向生产者发起回查（Check），询问事务的最终状态。生产者需要根据本地事务的状态返回<strong>提交</strong>或<strong>回滚</strong>的结果</li>
+</ol>
+<p><strong>核心方法</strong></p>
+<ul>
+<li>sendMessageInTransaction：生产者发送事物消息</li>
+<li>executeLocalTransaction：生产者执行本地事务</li>
+<li>checkLocalTransaction：Broker回查事务状态</li>
+</ul>
+<p><strong>事务消息原理</strong></p>
+<p>RocketMQ事物消息通过”两阶段提交“来实现最终一致性：</p>
+<ol>
+<li>第一阶段：生产者发送半事务消息到 Broker，消息处于<strong>暂时不可消费</strong>状态。</li>
+<li>第二阶段：生产者执行本地事务，事务成功则提交消息使其可消费，事务失败则回滚消息。</li>
+</ol>
+<p>当 RocketMQ Broker 没有收到生产者的确认消息时，会定时询问生产者“这条消息对应的事务到底成功还是失败”，生产者根据本地事务的结果做出相应的响应。</p>
+<p><strong>事务消息的状态</strong></p>
+<ul>
+<li>COMMIT_MESSAGE：本地事务执行成功，提交消息，允许消费</li>
+<li>ROLLBACK_MESSAGE：本地事务执行失败，回滚消息，不允许消费</li>
+<li>UNKNOWN：暂时无法确定事务状态，Broker回定时回查</li>
+</ul>
+<p>从RocketMQ5.x版本中，默认开启了消息强制校验，若定义为normal，尝试发送FIFO会被broker拒绝并返回类型不匹配异常，5.x以下的版本需要程序员自己管理消息类型的正确性</p>
+<blockquote>
+<p>顺序消息producer</p>
+</blockquote>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">package</span> <span class="pl-s1">com</span>.<span class="pl-s1">mq</span>.<span class="pl-s1">order</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">producer</span>.<span class="pl-s1">DefaultMQProducer</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">producer</span>.<span class="pl-s1">SendResult</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">common</span>.<span class="pl-s1">message</span>.<span class="pl-s1">Message</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">nio</span>.<span class="pl-s1">charset</span>.<span class="pl-s1">StandardCharsets</span>;
+
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-smi">OrderProducer</span> {
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
+        <span class="pl-smi">DefaultMQProducer</span> <span class="pl-s1">producer</span> = <span class="pl-k">new</span> <span class="pl-smi">DefaultMQProducer</span>(<span class="pl-s">"god"</span>);
+
+        <span class="pl-s1">producer</span>.<span class="pl-en">setNamesrvAddr</span>(<span class="pl-s">"172.24.192.134:9876"</span>);
+        <span class="pl-s1">producer</span>.<span class="pl-en">start</span>();
+
+        <span class="pl-k">for</span> (<span class="pl-smi">int</span> <span class="pl-s1">i</span> = <span class="pl-c1">0</span>;<span class="pl-s1">i</span> &lt; <span class="pl-c1">10</span>;<span class="pl-s1">i</span>++) {
+            <span class="pl-k">for</span>(<span class="pl-smi">int</span> <span class="pl-s1">j</span> = <span class="pl-c1">0</span>;<span class="pl-s1">j</span> &lt; <span class="pl-c1">10</span>;<span class="pl-s1">j</span>++) {
+                <span class="pl-smi">Message</span> <span class="pl-s1">message</span> = <span class="pl-k">new</span> <span class="pl-smi">Message</span>(<span class="pl-s">"kevin"</span>, <span class="pl-s">"a"</span>, <span class="pl-s">"key"</span>, (<span class="pl-s1">i</span> + <span class="pl-s">"_"</span> + <span class="pl-s1">j</span>).<span class="pl-en">getBytes</span>(<span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>));
+                <span class="pl-smi">SendResult</span> <span class="pl-s1">result</span> = <span class="pl-s1">producer</span>.<span class="pl-en">send</span>(<span class="pl-s1">message</span>, (<span class="pl-s1">list</span>, <span class="pl-s1">message1</span>, <span class="pl-s1">o</span>) -&gt; {
+                    <span class="pl-smi">Integer</span> <span class="pl-s1">index</span> = (<span class="pl-smi">Integer</span>) <span class="pl-s1">o</span>;
+                    <span class="pl-k">return</span> <span class="pl-s1">list</span>.<span class="pl-en">get</span>(<span class="pl-s1">index</span> % <span class="pl-s1">list</span>.<span class="pl-en">size</span>());
+                }, <span class="pl-s1">i</span>);
+                <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s1">result</span>);
+            }
+        }
+
+        <span class="pl-s1">producer</span>.<span class="pl-en">shutdown</span>();
+    }
+}</pre></div>
+<blockquote>
+<p>顺序消息consumer</p>
+</blockquote>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">package</span> <span class="pl-s1">com</span>.<span class="pl-s1">mq</span>.<span class="pl-s1">order</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">consumer</span>.<span class="pl-s1">DefaultMQPushConsumer</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">consumer</span>.<span class="pl-s1">listener</span>.<span class="pl-s1">ConsumeOrderlyStatus</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">consumer</span>.<span class="pl-s1">listener</span>.<span class="pl-s1">MessageListenerOrderly</span>;
+
+
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-smi">OrderConsumer</span> {
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
+        <span class="pl-smi">DefaultMQPushConsumer</span> <span class="pl-s1">consumer</span> = <span class="pl-k">new</span> <span class="pl-smi">DefaultMQPushConsumer</span>(<span class="pl-s">"kevin"</span>);
+        <span class="pl-s1">consumer</span>.<span class="pl-en">setNamesrvAddr</span>(<span class="pl-s">"172.24.192.134:9876"</span>);
+        <span class="pl-s1">consumer</span>.<span class="pl-en">subscribe</span>(<span class="pl-s">"kevin"</span>, <span class="pl-s">"*"</span>);
+
+        <span class="pl-s1">consumer</span>.<span class="pl-en">setMessageListener</span>((<span class="pl-smi">MessageListenerOrderly</span>) (<span class="pl-s1">list</span>, <span class="pl-s1">consumeOrderlyContext</span>) -&gt; {
+            <span class="pl-s1">list</span>.<span class="pl-en">forEach</span>(<span class="pl-s1">m</span> -&gt; {
+                <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-k">new</span> <span class="pl-smi">String</span>(<span class="pl-s1">m</span>.<span class="pl-en">getBody</span>()));
+                <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s1">m</span>);
+            });
+            <span class="pl-k">return</span> <span class="pl-smi">ConsumeOrderlyStatus</span>.<span class="pl-c1">SUCCESS</span>;
+        });
+
+        <span class="pl-s1">consumer</span>.<span class="pl-en">start</span>();
+    }
+}</pre></div>
+<blockquote>
+<p>延迟消息</p>
+</blockquote>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">package</span> <span class="pl-s1">com</span>.<span class="pl-s1">mq</span>.<span class="pl-s1">delay</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">producer</span>.<span class="pl-s1">DefaultMQProducer</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">producer</span>.<span class="pl-s1">SendResult</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">common</span>.<span class="pl-s1">message</span>.<span class="pl-s1">Message</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">nio</span>.<span class="pl-s1">charset</span>.<span class="pl-s1">StandardCharsets</span>;
+
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-smi">DelayProducer</span> {
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
+        <span class="pl-smi">DefaultMQProducer</span> <span class="pl-s1">producer</span> = <span class="pl-k">new</span> <span class="pl-smi">DefaultMQProducer</span>(<span class="pl-s">"delay_message"</span>);
+        <span class="pl-s1">producer</span>.<span class="pl-en">setNamesrvAddr</span>(<span class="pl-s">"172.24.192.134:9876"</span>);
+        <span class="pl-s1">producer</span>.<span class="pl-en">start</span>();
+
+        <span class="pl-k">for</span>(<span class="pl-smi">int</span> <span class="pl-s1">i</span> = <span class="pl-c1">0</span>;<span class="pl-s1">i</span> &lt; <span class="pl-c1">10</span>;<span class="pl-s1">i</span>++) {
+            <span class="pl-smi">Message</span> <span class="pl-s1">message</span> = <span class="pl-k">new</span> <span class="pl-smi">Message</span>(<span class="pl-s">"delay_message"</span>, (<span class="pl-s1">i</span> + <span class="pl-s">"delay"</span>).<span class="pl-en">getBytes</span>(<span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>));
+            <span class="pl-s1">message</span>.<span class="pl-en">setDelayTimeLevel</span>(<span class="pl-c1">4</span>);
+            <span class="pl-smi">SendResult</span> <span class="pl-s1">result</span> = <span class="pl-s1">producer</span>.<span class="pl-en">send</span>(<span class="pl-s1">message</span>);
+            <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s1">result</span>);
+        }
+
+        <span class="pl-s1">producer</span>.<span class="pl-en">shutdown</span>();
+    }
+}</pre></div>
+<blockquote>
+<p>过滤消息producer</p>
+</blockquote>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">package</span> <span class="pl-s1">com</span>.<span class="pl-s1">mq</span>.<span class="pl-s1">filter</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">producer</span>.<span class="pl-s1">DefaultMQProducer</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">common</span>.<span class="pl-s1">message</span>.<span class="pl-s1">Message</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">nio</span>.<span class="pl-s1">charset</span>.<span class="pl-s1">StandardCharsets</span>;
+
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-smi">FilterProducer</span> {
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
+        <span class="pl-smi">DefaultMQProducer</span> <span class="pl-s1">producer</span> = <span class="pl-k">new</span> <span class="pl-smi">DefaultMQProducer</span>(<span class="pl-s">"filtered_message"</span>);
+        <span class="pl-s1">producer</span>.<span class="pl-en">setNamesrvAddr</span>(<span class="pl-s">"172.24.192.134:9876"</span>);
+        <span class="pl-s1">producer</span>.<span class="pl-en">start</span>();
+
+        <span class="pl-smi">String</span>[] <span class="pl-s1">arr</span> = {<span class="pl-s">"a"</span>, <span class="pl-s">"b"</span>, <span class="pl-s">"c"</span>};
+
+        <span class="pl-k">for</span>(<span class="pl-smi">int</span> <span class="pl-s1">i</span> = <span class="pl-c1">0</span>;<span class="pl-s1">i</span> &lt; <span class="pl-c1">10</span>;<span class="pl-s1">i</span>++) {
+            <span class="pl-smi">Message</span> <span class="pl-s1">message</span> = <span class="pl-k">new</span> <span class="pl-smi">Message</span>(<span class="pl-s">"filtered_topic"</span>, <span class="pl-s1">arr</span>[<span class="pl-s1">i</span> % <span class="pl-c1">3</span>], <span class="pl-s">"message"</span>.<span class="pl-en">getBytes</span>(<span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>));
+            <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s1">producer</span>.<span class="pl-en">send</span>(<span class="pl-s1">message</span>));
+        }
+
+        <span class="pl-s1">producer</span>.<span class="pl-en">shutdown</span>();
+    }
+}</pre></div>
+<blockquote>
+<p>过滤消息consumer</p>
+</blockquote>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">package</span> <span class="pl-s1">com</span>.<span class="pl-s1">mq</span>.<span class="pl-s1">filter</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">consumer</span>.<span class="pl-s1">DefaultMQPushConsumer</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">consumer</span>.<span class="pl-s1">listener</span>.<span class="pl-s1">ConsumeConcurrentlyContext</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">consumer</span>.<span class="pl-s1">listener</span>.<span class="pl-s1">ConsumeConcurrentlyStatus</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">consumer</span>.<span class="pl-s1">listener</span>.<span class="pl-s1">MessageListenerConcurrently</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">common</span>.<span class="pl-s1">message</span>.<span class="pl-s1">MessageExt</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">util</span>.<span class="pl-s1">List</span>;
+
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-smi">FilterConsumer</span> {
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span> {
+        <span class="pl-smi">DefaultMQPushConsumer</span> <span class="pl-s1">consumer</span> = <span class="pl-k">new</span> <span class="pl-smi">DefaultMQPushConsumer</span>(<span class="pl-s">"filter_consumer"</span>);
+        <span class="pl-s1">consumer</span>.<span class="pl-en">setNamesrvAddr</span>(<span class="pl-s">"172.24.192.134:9876"</span>);
+        <span class="pl-s1">consumer</span>.<span class="pl-en">subscribe</span>(<span class="pl-s">"filtered_topic"</span>, <span class="pl-s">"a"</span>);
+
+        <span class="pl-s1">consumer</span>.<span class="pl-en">setMessageListener</span>(<span class="pl-k">new</span> <span class="pl-smi">MessageListenerConcurrently</span>() {
+            <span class="pl-c1">@</span><span class="pl-c1">Override</span>
+            <span class="pl-k">public</span> <span class="pl-smi">ConsumeConcurrentlyStatus</span> <span class="pl-en">consumeMessage</span>(<span class="pl-smi">List</span>&lt;<span class="pl-smi">MessageExt</span>&gt; <span class="pl-s1">list</span>, <span class="pl-smi">ConsumeConcurrentlyContext</span> <span class="pl-s1">consumeConcurrentlyContext</span>) {
+                <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s">"消息消费成功..."</span>);
+
+                <span class="pl-k">return</span> <span class="pl-smi">ConsumeConcurrentlyStatus</span>.<span class="pl-c1">CONSUME_SUCCESS</span>;
+            }
+        });
+
+        <span class="pl-s1">consumer</span>.<span class="pl-en">start</span>();
+    }
+}</pre></div>
+<blockquote>
+<p>事务消息</p>
+</blockquote>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">package</span> <span class="pl-s1">com</span>.<span class="pl-s1">mq</span>.<span class="pl-s1">transaction</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">producer</span>.<span class="pl-s1">LocalTransactionState</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">producer</span>.<span class="pl-s1">TransactionListener</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">producer</span>.<span class="pl-s1">TransactionMQProducer</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">producer</span>.<span class="pl-s1">TransactionSendResult</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">common</span>.<span class="pl-s1">message</span>.<span class="pl-s1">Message</span>;
+<span class="pl-k">import</span> <span class="pl-s1">org</span>.<span class="pl-s1">apache</span>.<span class="pl-s1">rocketmq</span>.<span class="pl-s1">common</span>.<span class="pl-s1">message</span>.<span class="pl-s1">MessageExt</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">nio</span>.<span class="pl-s1">charset</span>.<span class="pl-s1">StandardCharsets</span>;
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">util</span>.<span class="pl-s1">concurrent</span>.<span class="pl-s1">TimeUnit</span>;
+
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-smi">TransactionProducer</span> {
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
+        <span class="pl-smi">TransactionMQProducer</span> <span class="pl-s1">producer</span> = <span class="pl-k">new</span> <span class="pl-smi">TransactionMQProducer</span>(<span class="pl-s">"transaction_producer"</span>);
+        <span class="pl-s1">producer</span>.<span class="pl-en">setNamesrvAddr</span>(<span class="pl-s">"172.24.192.134:9876"</span>);
+        <span class="pl-s1">producer</span>.<span class="pl-en">start</span>();
+
+        <span class="pl-s1">producer</span>.<span class="pl-en">setTransactionListener</span>(<span class="pl-k">new</span> <span class="pl-smi">TransactionListener</span>() {
+            <span class="pl-c1">@</span><span class="pl-c1">Override</span>
+            <span class="pl-k">public</span> <span class="pl-smi">LocalTransactionState</span> <span class="pl-en">executeLocalTransaction</span>(<span class="pl-smi">Message</span> <span class="pl-s1">message</span>, <span class="pl-smi">Object</span> <span class="pl-s1">o</span>) {
+                <span class="pl-k">try</span> {
+                    <span class="pl-c">// 耗时操作 模拟local transaction</span>
+                    <span class="pl-smi">TimeUnit</span>.<span class="pl-c1">SECONDS</span>.<span class="pl-en">sleep</span>(<span class="pl-c1">2</span>);
+                } <span class="pl-k">catch</span> (<span class="pl-smi">InterruptedException</span> <span class="pl-s1">e</span>) {
+                    <span class="pl-k">throw</span> <span class="pl-k">new</span> <span class="pl-smi">RuntimeException</span>(<span class="pl-s1">e</span>);
+                }
+
+                <span class="pl-c">// 假设local transaction success</span>
+                <span class="pl-k">return</span> <span class="pl-smi">LocalTransactionState</span>.<span class="pl-c1">COMMIT_MESSAGE</span>;
+            }
+
+            <span class="pl-c1">@</span><span class="pl-c1">Override</span>
+            <span class="pl-k">public</span> <span class="pl-smi">LocalTransactionState</span> <span class="pl-en">checkLocalTransaction</span>(<span class="pl-smi">MessageExt</span> <span class="pl-s1">messageExt</span>) {
+                <span class="pl-k">return</span> <span class="pl-smi">LocalTransactionState</span>.<span class="pl-c1">UNKNOW</span>;
+            }
+        });
+
+        <span class="pl-smi">Message</span> <span class="pl-s1">m</span> = <span class="pl-k">new</span> <span class="pl-smi">Message</span>(<span class="pl-s">"tran_topic"</span>, <span class="pl-s">"message"</span>.<span class="pl-en">getBytes</span>(<span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>));
+        <span class="pl-smi">TransactionSendResult</span> <span class="pl-s1">re</span> = <span class="pl-s1">producer</span>.<span class="pl-en">sendMessageInTransaction</span>(<span class="pl-s1">m</span>, <span class="pl-c1">null</span>);
+        <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s1">re</span>);
+    }
+}</pre></div>
+<h3>常见问题</h3>
+<p><strong>如何保证消息不丢失</strong></p>
+<ol>
+<li>在producer端保证message的重新发送</li>
+<li>在broker中使用同步刷盘</li>
+<li>在消费者端保证消息的成功消费，有消费失败重试机制</li>
+</ol>
+<p><strong>存储结构</strong></p>
+<ol>
+<li>commit_log：所有message顺序存储的文件</li>
+<li>consumer_queue：与tags有关的索引</li>
+<li>index_file：与keys有关的索引</li>
+</ol></div>
 <div style="font-size:small;margin-top:8px;float:right;">转载请注明出处</div>
 
 <button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
@@ -98,7 +1424,7 @@ if("06/19/2024"!=""){
 </script></div>
 </body>
 <script>
-var IconList={'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'sync': 'M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z'};
+var IconList={'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'sync': 'M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z', 'copy': 'M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z', 'check': 'M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z'};
 var utterancesLoad=0;
 
 let themeSettings={
@@ -171,7 +1497,70 @@ function iFrameLoading(){
     }
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+    const createClipboardHTML = (codeContent, additionalClasses = '') => `
+        <pre class="notranslate"><code class="notranslate">${codeContent}</code></pre>
+        <div class="clipboard-container position-absolute right-0 top-0 ${additionalClasses}">
+            <clipboard-copy class="ClipboardButton btn m-2 p-0" role="button" style="display: inherit;">
+                <svg height="16" width="16" class="octicon octicon-copy m-2"><path d="${IconList["copy"]}"></path></svg>
+                <svg height="16" width="16" class="octicon octicon-check color-fg-success m-2 d-none"><path d="${IconList["check"]}"></path></svg>
+            </clipboard-copy>
+            <div class="copy-feedback">Copied!</div>
+        </div>
+    `;
 
+    const handleCodeElements = (selector = '') => {
+        document.querySelectorAll(selector).forEach(codeElement => {
+            const codeContent = codeElement.innerHTML;
+            const newStructure = document.createElement('div');
+            newStructure.className = 'snippet-clipboard-content position-relative overflow-auto';
+            newStructure.innerHTML = createClipboardHTML(codeContent);
+
+            const parentElement = codeElement.parentElement;
+            if (selector.includes('highlight')) {
+                parentElement.insertBefore(newStructure, codeElement.nextSibling);
+                parentElement.removeChild(codeElement);
+            } else {
+                parentElement.parentElement.replaceChild(newStructure, parentElement);
+            }
+        });
+    };
+
+    handleCodeElements('pre.notranslate > code.notranslate');
+    handleCodeElements('div.highlight > pre.notranslate');
+
+    let currentFeedback = null;
+    document.querySelectorAll('clipboard-copy').forEach(copyButton => {
+        copyButton.addEventListener('click', () => {
+            const codeContent = copyButton.closest('.snippet-clipboard-content').innerText;
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = codeContent;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextArea);
+
+            const copyIcon = copyButton.querySelector('.octicon-copy');
+            const checkIcon = copyButton.querySelector('.octicon-check');
+            const copyFeedback = copyButton.nextElementSibling;
+
+            if (currentFeedback && currentFeedback !== copyFeedback) {currentFeedback.style.display = 'none';}
+            currentFeedback = copyFeedback;
+
+            copyIcon.classList.add('d-none');
+            checkIcon.classList.remove('d-none');
+            copyFeedback.style.display = 'block';
+            copyButton.style.borderColor = 'var(--color-success-fg)';
+
+            setTimeout(() => {
+                copyIcon.classList.remove('d-none');
+                checkIcon.classList.add('d-none');
+                copyFeedback.style.display = 'none';
+                copyButton.style.borderColor = '';
+            }, 2000);
+        });
+    });
+});
 
 </script>
 
