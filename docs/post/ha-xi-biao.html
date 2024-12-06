@@ -149,7 +149,7 @@ hash % 数组长度 &lt;==&gt;（等价于） hash &amp; (数组长度 - 1)</p>
 <ol start="2">
 <li>Hashing类使用</li>
 </ol>
-<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">private</span> <span class="pl-smi">int</span> <span class="pl-s1">hash</span>(<span class="pl-smi">Object</span> <span class="pl-s1">key</span>) {
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">private</span> <span class="pl-smi">int</span> <span class="pl-en">hash</span>(<span class="pl-smi">Object</span> <span class="pl-s1">key</span>) {
     <span class="pl-k">if</span> (<span class="pl-s1">key</span> <span class="pl-k">instanceof</span> <span class="pl-smi">String</span> <span class="pl-s1">k</span>)
         <span class="pl-k">return</span> <span class="pl-smi">Hashing</span>.<span class="pl-en">murmur3_32_fixed</span>().<span class="pl-en">hashString</span>(<span class="pl-s1">k</span>, <span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>).<span class="pl-en">asInt</span>();
 

@@ -564,7 +564,7 @@ secret_key: 4MmSQrEy5t8xpIbACZLmnYhidaOcIEt246GiSPRM
 <span class="pl-c"> * 测试列出文件列表</span>
 <span class="pl-c"> * @throws Exception 异常</span>
 <span class="pl-c"> */</span>
-<span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">testListObjs</span>() <span class="pl-k">throws</span> <span class="pl-s1">Exception</span>{
+<span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">testListObjs</span>() <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
     <span class="pl-smi">Iterable</span>&lt;<span class="pl-smi">Result</span>&lt;<span class="pl-smi">Item</span>&gt;&gt; <span class="pl-s1">objs</span> = <span class="pl-s1">client</span>.<span class="pl-en">listObjects</span>(<span class="pl-smi">ListObjectsArgs</span>.<span class="pl-en">builder</span>()
                                              .<span class="pl-en">bucket</span>(<span class="pl-s">"test"</span>)
                                              .<span class="pl-en">prefix</span>(<span class="pl-s">"video/a"</span>)
@@ -582,7 +582,7 @@ secret_key: 4MmSQrEy5t8xpIbACZLmnYhidaOcIEt246GiSPRM
 <span class="pl-c"> * 测试列出所有bucket</span>
 <span class="pl-c"> * @throws Exception 异常</span>
 <span class="pl-c"> */</span>
-<span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">testListBuckets</span>() <span class="pl-k">throws</span> <span class="pl-s1">Exception</span> {
+<span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">testListBuckets</span>() <span class="pl-k">throws</span> <span class="pl-smi">Exception</span> {
     <span class="pl-smi">List</span>&lt;<span class="pl-smi">Bucket</span>&gt; <span class="pl-s1">buckets</span> = <span class="pl-s1">client</span>.<span class="pl-en">listBuckets</span>();
     <span class="pl-s1">buckets</span>.<span class="pl-en">forEach</span>(<span class="pl-s1">b</span> -&gt; <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s1">b</span>.<span class="pl-en">name</span>()));
     <span class="pl-s1">client</span>.<span class="pl-en">close</span>();
@@ -592,7 +592,7 @@ secret_key: 4MmSQrEy5t8xpIbACZLmnYhidaOcIEt246GiSPRM
 <span class="pl-c"> * 测试下载文件</span>
 <span class="pl-c"> * @throws Exception 异常</span>
 <span class="pl-c"> */</span>
-<span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">testGetObj</span>() <span class="pl-k">throws</span> <span class="pl-s1">Exception</span> {
+<span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">testGetObj</span>() <span class="pl-k">throws</span> <span class="pl-smi">Exception</span> {
     <span class="pl-smi">GetObjectResponse</span> <span class="pl-s1">resp</span> = <span class="pl-s1">client</span>.<span class="pl-en">getObject</span>(<span class="pl-smi">GetObjectArgs</span>.<span class="pl-en">builder</span>()
                                       .<span class="pl-en">bucket</span>(<span class="pl-s">"test"</span>)
                                       .<span class="pl-en">object</span>(<span class="pl-s">"9666489052.mp4"</span>)
@@ -611,7 +611,7 @@ secret_key: 4MmSQrEy5t8xpIbACZLmnYhidaOcIEt246GiSPRM
 <span class="pl-c"> * 测试复制文件</span>
 <span class="pl-c"> * @throws Exception 异常</span>
 <span class="pl-c"> */</span>
-<span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">testCopyObj</span>() <span class="pl-k">throws</span> <span class="pl-s1">Exception</span> {
+<span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">testCopyObj</span>() <span class="pl-k">throws</span> <span class="pl-smi">Exception</span> {
     <span class="pl-smi">CopySource</span> <span class="pl-s1">src</span> = <span class="pl-k">new</span> <span class="pl-smi">CopySource</span>.<span class="pl-smi">Builder</span>().<span class="pl-en">bucket</span>(<span class="pl-s">"test"</span>).<span class="pl-en">object</span>(<span class="pl-s">"9666489052.mp4"</span>).<span class="pl-en">build</span>();
     <span class="pl-s1">client</span>.<span class="pl-en">copyObject</span>(<span class="pl-smi">CopyObjectArgs</span>.<span class="pl-en">builder</span>()
                       .<span class="pl-en">source</span>(<span class="pl-s1">src</span>)
@@ -626,7 +626,7 @@ secret_key: 4MmSQrEy5t8xpIbACZLmnYhidaOcIEt246GiSPRM
 <span class="pl-c"> * 测试删除文件</span>
 <span class="pl-c"> * @throws Exception 异常</span>
 <span class="pl-c"> */</span>
-<span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">testDeleteObj</span>() <span class="pl-k">throws</span> <span class="pl-s1">Exception</span> {
+<span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">testDeleteObj</span>() <span class="pl-k">throws</span> <span class="pl-smi">Exception</span> {
     <span class="pl-s1">client</span>.<span class="pl-en">removeObject</span>(<span class="pl-smi">RemoveObjectArgs</span>.<span class="pl-en">builder</span>()
                         .<span class="pl-en">bucket</span>(<span class="pl-s">"learn"</span>)
                         .<span class="pl-en">object</span>(<span class="pl-s">"美女舞蹈.mp4"</span>)

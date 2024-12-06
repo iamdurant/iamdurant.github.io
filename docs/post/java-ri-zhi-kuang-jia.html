@@ -284,7 +284,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 </ol>
 <h5>为什么要对日志进行分级</h5>
 <p>无论是将日志输出到<code class="notranslate">console</code>还是文件，都会带来消耗，降低程序的运行效率，但是，日志又是调试或者了解程序运行的不可或缺的手段，通过对日志进行分级处理，在一个配置文件中进行统一的管理，这样代码中日志部分就可以不用删除，又可以控制输出哪些日志</p>
-<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) {
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) {
     <span class="pl-smi">Logger</span> <span class="pl-s1">logger</span> = <span class="pl-smi">Logger</span>.<span class="pl-en">getLogger</span>(<span class="pl-s">"multi"</span>);
 
     <span class="pl-s1">logger</span>.<span class="pl-en">setUseParentHandlers</span>(<span class="pl-c1">false</span>);
@@ -322,8 +322,8 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s1">l1</span>.<span class="pl-en">getParent</span>() +  <span class="pl-s">" name: "</span> + <span class="pl-s1">l1</span>.<span class="pl-en">getParent</span>().<span class="pl-en">getName</span>());
 <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s1">l2</span>.<span class="pl-en">getParent</span>() + <span class="pl-s">" name: "</span> + <span class="pl-s1">l2</span>.<span class="pl-en">getParent</span>().<span class="pl-en">getName</span>());
 
-输出：
-<span class="pl-smi">java</span>.<span class="pl-smi">util</span>.<span class="pl-smi">logging</span>.<span class="pl-smi">LogManager$RootLogger</span><span class="pl-c1">@</span><span class="pl-c1">7</span><span class="pl-c1">cd84586</span> <span class="pl-s1">name</span>: 
+<span class="pl-smi">输出</span>：
+<span class="pl-s1">java</span>.<span class="pl-s1">util</span>.<span class="pl-s1">logging</span>.<span class="pl-s1">LogManager$RootLogger</span><span class="pl-c1">@</span><span class="pl-c1">7</span><span class="pl-c1">cd84586</span> <span class="pl-s1">name</span>: 
 <span class="pl-s1">java</span>.<span class="pl-s1">util</span>.<span class="pl-s1">logging</span>.<span class="pl-s1">Logger</span><span class="pl-c1">@</span><span class="pl-c1">30d</span><span class="pl-c1">ae81</span> <span class="pl-s1">name</span>: <span class="pl-s1">com</span>.<span class="pl-s1">niuma</span></pre></div>
 <h5>日志配置</h5>
 <p>我们可以通过2种方式配置<code class="notranslate">JUL</code>的日志行为(设置日志级别、日志输出地、日志格式等等)</p>
@@ -395,7 +395,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <p><code class="notranslate">Filter</code>，用来对输出的日志记录进行过滤。我们可以根据多个维度进行过滤，例如<code class="notranslate">message</code>中包含某段信息的日志、只输出某个方法的日志，只输出某个级别的日志等等。</p>
 <p><code class="notranslate">Logger</code>对象将日志封装为一个<code class="notranslate">LogRecord</code>对象，然后将该对象交给handler处理。每个<code class="notranslate">Logger</code>和<code class="notranslate">handler</code>都可以关联一个<code class="notranslate">filter</code>。<code class="notranslate">LogRecord</code>中包含了日志的文本消息、日志生成的时间戳、日志来源于哪个类，日志来源于哪个方法、日志来源于哪个线程等等。</p>
 <p>只需实现Filter接口即可自定义如何过滤日志。</p>
-<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-s1">IOException</span> {
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">IOException</span> {
     <span class="pl-smi">Logger</span> <span class="pl-s1">logger</span> = <span class="pl-smi">Logger</span>.<span class="pl-en">getLogger</span>(<span class="pl-s">"kevin"</span>);
     <span class="pl-s1">logger</span>.<span class="pl-en">setFilter</span>(<span class="pl-k">new</span> <span class="pl-smi">CustomFilter</span>());
 

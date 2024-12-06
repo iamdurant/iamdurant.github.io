@@ -141,7 +141,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <h4>冒泡排序</h4>
 <p>重复遍历数组（每次遍历不断减少），每轮遍历不断比较并往后交换较大值，用一个变量记录最近的一次交换，可以减少交换次数，<br>
 在部分有序的情况下，可以减少交换次数。</p>
-<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">bubbleSort</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>) {
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">bubbleSort</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>) {
         <span class="pl-smi">int</span> <span class="pl-s1">j</span> = <span class="pl-s1">nums</span>.<span class="pl-s1">length</span> - <span class="pl-c1">1</span>;
         <span class="pl-k">while</span> (<span class="pl-c1">true</span>) {
             <span class="pl-smi">int</span> <span class="pl-s1">x</span> = <span class="pl-c1">0</span>;
@@ -160,7 +160,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
     }</pre></div>
 <h4>选择排序</h4>
 <p>将数组分为两部分，从后往前每轮遍历获取最大值并进行交换，减少了交换次数。</p>
-<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">selectionSort</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>) {
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">selectionSort</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>) {
         <span class="pl-smi">int</span> <span class="pl-s1">maxIdx</span>;
         <span class="pl-smi">int</span> <span class="pl-s1">r</span> = <span class="pl-s1">nums</span>.<span class="pl-s1">length</span> - <span class="pl-c1">1</span>;
         <span class="pl-k">do</span> {
@@ -181,7 +181,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <h4>堆排序</h4>
 <h4>插入排序</h4>
 <p>将数组分为两部分，左边为有序部分，右边为无序部分，每次从无序部分挑选最左值往有序部分插入（方向为从large到small）</p>
-<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">insertionSort</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>) {
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">insertionSort</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>) {
         <span class="pl-smi">int</span> <span class="pl-s1">left</span> = <span class="pl-c1">1</span>;
         <span class="pl-smi">int</span> <span class="pl-s1">i</span>;
         <span class="pl-k">while</span> (<span class="pl-s1">left</span> != <span class="pl-s1">nums</span>.<span class="pl-s1">length</span>) {
@@ -204,7 +204,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
     }</pre></div>
 <h4>希尔排序</h4>
 <p>基于插入排序，用gap进行分组排序，可以减少移动次数。</p>
-<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">shellSort</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>) {
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">shellSort</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>) {
         <span class="pl-k">for</span> (<span class="pl-smi">int</span> <span class="pl-s1">g</span> = <span class="pl-s1">nums</span>.<span class="pl-s1">length</span> &gt;&gt; <span class="pl-c1">1</span>;<span class="pl-s1">g</span> &gt;= <span class="pl-c1">1</span>;<span class="pl-s1">g</span> = <span class="pl-s1">g</span> &gt;&gt; <span class="pl-c1">1</span>) {
             <span class="pl-k">for</span> (<span class="pl-smi">int</span> <span class="pl-s1">x</span> = <span class="pl-c1">0</span>;<span class="pl-s1">x</span> + <span class="pl-s1">g</span> &lt; <span class="pl-s1">nums</span>.<span class="pl-s1">length</span>;<span class="pl-s1">x</span>++) {
                 <span class="pl-smi">int</span> <span class="pl-s1">left</span> = <span class="pl-s1">x</span> + <span class="pl-s1">g</span>;
@@ -231,11 +231,11 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
     }</pre></div>
 <h4>归并排序</h4>
 <p>可以分解为子问题，不断划分数组，当数组大小为1时返回（有序），返回的过程中合并两个有序部分。</p>
-<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">mergeSort</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>) {
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">mergeSort</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>) {
         <span class="pl-en">helpMS</span>(<span class="pl-s1">nums</span>, <span class="pl-c1">0</span>, <span class="pl-s1">nums</span>.<span class="pl-s1">length</span> - <span class="pl-c1">1</span>);
     }
 
-    <span class="pl-k">private</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">helpMS</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>, <span class="pl-smi">int</span> <span class="pl-s1">l</span>, <span class="pl-smi">int</span> <span class="pl-s1">r</span>) {
+    <span class="pl-k">private</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">helpMS</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>, <span class="pl-smi">int</span> <span class="pl-s1">l</span>, <span class="pl-smi">int</span> <span class="pl-s1">r</span>) {
         <span class="pl-k">if</span> (<span class="pl-s1">l</span> == <span class="pl-s1">r</span>)
             <span class="pl-k">return</span>;
 
@@ -271,7 +271,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
     }</pre></div>
 <p><strong>归并排序（迭代法实现）</strong></p>
 <div class="highlight highlight-source-java"><pre class="notranslate">    <span class="pl-c">// 迭代归并排序</span>
-    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">mergeSortIterative</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">arr</span>) {
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">mergeSortIterative</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">arr</span>) {
         <span class="pl-smi">int</span> <span class="pl-s1">n</span> = <span class="pl-s1">arr</span>.<span class="pl-s1">length</span>;
 
         <span class="pl-c">// 当前大小的子数组</span>
@@ -289,7 +289,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
     }
     
     <span class="pl-c">// 合并两个子数组 arr[l..m] 和 arr[m+1..r]</span>
-    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">merge</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">arr</span>, <span class="pl-smi">int</span> <span class="pl-s1">l</span>, <span class="pl-smi">int</span> <span class="pl-s1">m</span>, <span class="pl-smi">int</span> <span class="pl-s1">r</span>) {
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">merge</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">arr</span>, <span class="pl-smi">int</span> <span class="pl-s1">l</span>, <span class="pl-smi">int</span> <span class="pl-s1">m</span>, <span class="pl-smi">int</span> <span class="pl-s1">r</span>) {
         <span class="pl-smi">int</span> <span class="pl-s1">n1</span> = <span class="pl-s1">m</span> - <span class="pl-s1">l</span> + <span class="pl-c1">1</span>;
         <span class="pl-smi">int</span> <span class="pl-s1">n2</span> = <span class="pl-s1">r</span> - <span class="pl-s1">m</span>;
 
@@ -335,11 +335,11 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
     }</pre></div>
 <h4>快速排序</h4>
 <p>找一个基准值，若基准值左右都有序则有序，可拆分为子问题。</p>
-<div class="highlight highlight-source-java"><pre class="notranslate">    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">quickSort</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>) {
+<div class="highlight highlight-source-java"><pre class="notranslate">    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">quickSort</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>) {
         <span class="pl-en">helpQS</span>(<span class="pl-s1">nums</span>, <span class="pl-c1">0</span>, <span class="pl-s1">nums</span>.<span class="pl-s1">length</span> - <span class="pl-c1">1</span>);
     }
 
-    <span class="pl-k">private</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">helpQS</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>, <span class="pl-smi">int</span> <span class="pl-s1">l</span>, <span class="pl-smi">int</span> <span class="pl-s1">r</span>) {
+    <span class="pl-k">private</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">helpQS</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>, <span class="pl-smi">int</span> <span class="pl-s1">l</span>, <span class="pl-smi">int</span> <span class="pl-s1">r</span>) {
         <span class="pl-k">if</span> (<span class="pl-s1">l</span> &gt;= <span class="pl-s1">r</span>)
             <span class="pl-k">return</span>;
 
@@ -348,7 +348,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
         <span class="pl-en">helpQS</span>(<span class="pl-s1">nums</span>, <span class="pl-s1">x</span> + <span class="pl-c1">1</span>, <span class="pl-s1">r</span>);
     }
 
-    <span class="pl-k">private</span> <span class="pl-k">static</span> <span class="pl-smi">int</span> <span class="pl-s1">partition2</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>, <span class="pl-smi">int</span> <span class="pl-s1">l</span>, <span class="pl-smi">int</span> <span class="pl-s1">r</span>) {
+    <span class="pl-k">private</span> <span class="pl-k">static</span> <span class="pl-smi">int</span> <span class="pl-en">partition2</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>, <span class="pl-smi">int</span> <span class="pl-s1">l</span>, <span class="pl-smi">int</span> <span class="pl-s1">r</span>) {
         <span class="pl-smi">int</span> <span class="pl-s1">idx</span> = <span class="pl-k">new</span> <span class="pl-smi">Random</span>().<span class="pl-en">nextInt</span>(<span class="pl-s1">r</span> - <span class="pl-s1">l</span> + <span class="pl-c1">1</span>) + <span class="pl-s1">l</span>;
 
         <span class="pl-k">if</span> (<span class="pl-s1">idx</span> != <span class="pl-s1">l</span>) {
@@ -386,7 +386,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <h3>不基于比较的排序算法</h3>
 <h4>计数排序</h4>
 <p>遍历数组，找出min和max值，通过min设置偏移量，能够对负数进行计数</p>
-<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">countingSort</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>) {
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">countingSort</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>) {
         <span class="pl-smi">int</span> <span class="pl-s1">max</span> = <span class="pl-c1">0</span>;
         <span class="pl-smi">int</span> <span class="pl-s1">min</span> = <span class="pl-c1">0</span>;
         <span class="pl-k">for</span> (<span class="pl-smi">int</span> <span class="pl-s1">num</span> : <span class="pl-s1">nums</span>) {
@@ -415,7 +415,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
     }</pre></div>
 <h4>桶排序</h4>
 <p>将元素分割为大小想等的桶（桶之间也是有序的），对各桶内元素排序</p>
-<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">bucketSort</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>, <span class="pl-smi">int</span> <span class="pl-s1">size</span>) {
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">bucketSort</span>(<span class="pl-smi">int</span>[] <span class="pl-s1">nums</span>, <span class="pl-smi">int</span> <span class="pl-s1">size</span>) {
         <span class="pl-c">// find min max</span>
         <span class="pl-smi">int</span> <span class="pl-s1">max</span> = <span class="pl-c1">0</span>;
         <span class="pl-smi">int</span> <span class="pl-s1">min</span> = <span class="pl-c1">0</span>;
@@ -451,7 +451,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
     }</pre></div>
 <h4>基数排序</h4>
 <p>基于桶，由低位到高位进行排序，得到由高位到低位有序的数组</p>
-<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-s1">radixSort</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">nums</span>) {
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">radixSort</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">nums</span>) {
         <span class="pl-smi">List</span>&lt;<span class="pl-smi">List</span>&lt;<span class="pl-smi">String</span>&gt;&gt; <span class="pl-s1">buckets</span> = <span class="pl-k">new</span> <span class="pl-smi">ArrayList</span>&lt;&gt;(<span class="pl-c1">128</span>);
         <span class="pl-k">for</span> (<span class="pl-smi">int</span> <span class="pl-s1">i</span> = <span class="pl-c1">0</span>;<span class="pl-s1">i</span> &lt; <span class="pl-c1">128</span>;<span class="pl-s1">i</span>++) {
             <span class="pl-s1">buckets</span>.<span class="pl-en">add</span>(<span class="pl-k">new</span> <span class="pl-smi">ArrayList</span>&lt;&gt;());

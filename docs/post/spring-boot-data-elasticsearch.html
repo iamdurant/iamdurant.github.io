@@ -251,9 +251,9 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <p><strong>annotation</strong></p>
 <div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-c1">@</span><span class="pl-c1">Repository</span>
 <span class="pl-c1">@</span><span class="pl-c1">EnableElasticSearchRepositories</span>(<span class="pl-s1">basePackage</span> = <span class="pl-s">""</span>)
-<span class="pl-c1">@</span><span class="pl-c1">Document</span>(<span class="pl-s1">indexName</span> = <span class="pl-s">""</span>， <span class="pl-s1">createIndex</span> = <span class="pl-c1">true</span>)  标注实体类
-<span class="pl-c1">@</span><span class="pl-c1">Id</span>  标注主键
-<span class="pl-c1">@</span><span class="pl-c1">Field</span>(<span class="pl-s1">type</span> = <span class="pl-smi">FieldType</span>.<span class="pl-s1">Text</span>, <span class="pl-s1">analyzer</span> = <span class="pl-s">"ik_max_word"</span>)  声明字段类型以及其他信息</pre></div>
+<span class="pl-c1">@</span><span class="pl-c1">Document</span>(<span class="pl-s1">indexName</span> = <span class="pl-s">""</span>， <span class="pl-s1">createIndex</span> = <span class="pl-c1">true</span>)  <span class="pl-smi">标注实体类</span>
+<span class="pl-c1">@</span><span class="pl-c1">Id</span>  <span class="pl-s1">标注主键</span>
+<span class="pl-c1">@</span><span class="pl-c1">Field</span>(<span class="pl-s1">type</span> = <span class="pl-smi">FieldType</span>.<span class="pl-s1">Text</span>, <span class="pl-s1">analyzer</span> = <span class="pl-s">"ik_max_word"</span>)  <span class="pl-s1">声明字段类型以及其他信息</span></pre></div>
 <p><strong>interface</strong></p>
 <div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-c1">@</span><span class="pl-c1">Repository</span>
 <span class="pl-k">public</span> <span class="pl-k">interface</span> <span class="pl-smi">EsSubjectRepo</span> <span class="pl-k">extends</span> <span class="pl-smi">ElasticsearchRepository</span>&lt;<span class="pl-smi">EsSubjectInfo</span>, <span class="pl-smi">Long</span>&gt; {
