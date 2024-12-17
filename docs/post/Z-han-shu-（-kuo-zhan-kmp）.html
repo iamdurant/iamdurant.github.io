@@ -26,7 +26,7 @@ public int[] zFunction(String s) {
             } else {
                 if(z[i - l] < r - i + 1) z[i] = z[i - l];
                 else {
-                    // 跳过 r - l + 1 后暴力匹配
+                    // 跳过前r - i + 1个后继续匹配
                     while(r + z[i] + 1 < n && c[r + z[i] + 1] == c[r - i + 1 + z[i]]) z[i]++;
                     z[i] += r - i + 1;
                 }
@@ -58,7 +58,7 @@ public int[] zFunction(String s) {
             } else {
                 if(z[i - l] < r - i + 1) z[i] = z[i - l];
                 else {
-                    // 跳过 r - l + 1 后暴力匹配
+                    // 跳过前r - i + 1个后继续匹配
                     while(r + z[i] + 1 < n && c[r + z[i] + 1] == c[r - i + 1 + z[i]]) z[i]++;
                     z[i] += r - i + 1;
                 }
@@ -157,7 +157,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
             } <span class="pl-k">else</span> {
                 <span class="pl-k">if</span>(<span class="pl-s1">z</span>[<span class="pl-s1">i</span> - <span class="pl-s1">l</span>] &lt; <span class="pl-s1">r</span> - <span class="pl-s1">i</span> + <span class="pl-c1">1</span>) <span class="pl-s1">z</span>[<span class="pl-s1">i</span>] = <span class="pl-s1">z</span>[<span class="pl-s1">i</span> - <span class="pl-s1">l</span>];
                 <span class="pl-k">else</span> {
-                    <span class="pl-c">// 跳过 r - l + 1 后暴力匹配</span>
+                    <span class="pl-c">// 跳过前r - i + 1个后继续匹配</span>
                     <span class="pl-k">while</span>(<span class="pl-s1">r</span> + <span class="pl-s1">z</span>[<span class="pl-s1">i</span>] + <span class="pl-c1">1</span> &lt; <span class="pl-s1">n</span> &amp;&amp; <span class="pl-s1">c</span>[<span class="pl-s1">r</span> + <span class="pl-s1">z</span>[<span class="pl-s1">i</span>] + <span class="pl-c1">1</span>] == <span class="pl-s1">c</span>[<span class="pl-s1">r</span> - <span class="pl-s1">i</span> + <span class="pl-c1">1</span> + <span class="pl-s1">z</span>[<span class="pl-s1">i</span>]]) <span class="pl-s1">z</span>[<span class="pl-s1">i</span>]++;
                     <span class="pl-s1">z</span>[<span class="pl-s1">i</span>] += <span class="pl-s1">r</span> - <span class="pl-s1">i</span> + <span class="pl-c1">1</span>;
                 }

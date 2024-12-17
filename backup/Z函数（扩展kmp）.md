@@ -14,7 +14,7 @@ public int[] zFunction(String s) {
             } else {
                 if(z[i - l] < r - i + 1) z[i] = z[i - l];
                 else {
-                    // 跳过 r - l + 1 后暴力匹配
+                    // 跳过前r - i + 1个后继续匹配
                     while(r + z[i] + 1 < n && c[r + z[i] + 1] == c[r - i + 1 + z[i]]) z[i]++;
                     z[i] += r - i + 1;
                 }
