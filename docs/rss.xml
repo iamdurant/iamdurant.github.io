@@ -1,5 +1,25 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>jasper</title><link>https://iamdurant.github.io</link><description>make programming great again</description><copyright>jasper</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1730782842.png?x-oss-process=image%2Fformat%2Cwebp</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Sun, 29 Dec 2024 22:31:20 +0000</lastBuildDate><managingEditor>jasper</managingEditor><ttl>60</ttl><webMaster>jasper</webMaster><item><title>floyd</title><link>https://iamdurant.github.io/post/floyd.html</link><description>#### [原理](https://blog.csdn.net/qq_35644234/article/details/60875818)&#13;
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>jasper</title><link>https://iamdurant.github.io</link><description>make programming great again</description><copyright>jasper</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1730782842.png?x-oss-process=image%2Fformat%2Cwebp</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Tue, 31 Dec 2024 19:42:14 +0000</lastBuildDate><managingEditor>jasper</managingEditor><ttl>60</ttl><webMaster>jasper</webMaster><item><title>二进制枚举</title><link>https://iamdurant.github.io/post/er-jin-zhi-mei-ju.html</link><description>#### 二进制枚举&#13;
+&#13;
+##### 1.枚举所有集合&#13;
+&#13;
+&gt; 假设有三个元素的集合z：{0, 1, 2}，那么每种元素可以选或者不选，只有三个元素，有`2^3`个子集&#13;
+&gt;&#13;
+&gt; {0，1，10，11，100，101，110，111}，刚好小于`1 &lt;&lt; |z|`的数有`2^3`个，从小开始枚举，然后取二进制位即可表示某个元素的状态&#13;
+&#13;
+```java&#13;
+for(int i = 0;i &lt; (1 &lt;&lt; n);i++) {&#13;
+    // 枚举二进制位，即能得到某个元素的取舍状态&#13;
+}&#13;
+```&#13;
+&#13;
+&#13;
+&#13;
+##### 2.从大到小枚举某个集合s的非空子集&#13;
+&#13;
+&gt; 假设对于集合`10101`，若想要枚举全部非空集合，暴力做法是：不断减1，得到的所有子集中包含了`s`的子集，其中会有集合不是s的子集&#13;
+&gt;&#13;
+&gt; 那么，如何跳过这些非s的子集的集合。</description><guid isPermaLink="true">https://iamdurant.github.io/post/er-jin-zhi-mei-ju.html</guid><pubDate>Tue, 31 Dec 2024 19:41:52 +0000</pubDate></item><item><title>floyd</title><link>https://iamdurant.github.io/post/floyd.html</link><description>#### [原理](https://blog.csdn.net/qq_35644234/article/details/60875818)&#13;
 &#13;
 #### 实现&#13;
 &#13;
