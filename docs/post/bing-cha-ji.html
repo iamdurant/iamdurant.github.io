@@ -10,7 +10,49 @@
         let theme = localStorage.getItem("meek_theme") || "light";
         document.documentElement.setAttribute("data-color-mode", theme);
     </script>
-<meta name="description" content="```java
+<meta name="description" content="#### 竞赛版
+```java
+class UnionFind {
+    int[] s;
+    int[] rank;
+
+    public UnionFind(int size) {
+        s = new int[size];
+        rank = new int[size];
+        for (int i = 0; i < size; i++) {
+            s[i] = i;
+        }
+    }
+
+    public int find(int x) {
+        // path compression
+        if (s[x] != x) {
+            s[x] = find(s[x]);
+        }
+
+        return s[x];
+    }
+
+    public void union(int i, int j) {
+        int iBoss = find(i);
+        int jBoss = find(j);
+
+        if (iBoss != jBoss) {
+            if(iBoss < jBoss) {
+                s[jBoss] = iBoss;
+            } else {
+                s[iBoss] = jBoss;
+            }
+        }
+    }
+}
+```
+
+
+#### 完全版
+- 有path compressed
+- 有 union by rank
+```java
 class DisjointSet {
     int[] s;
     int[] rank;
@@ -56,11 +98,51 @@ class DisjointSet {
             '}';
     }
 }
-```
-
-。">
+```。">
 <meta property="og:title" content="并查集">
-<meta property="og:description" content="```java
+<meta property="og:description" content="#### 竞赛版
+```java
+class UnionFind {
+    int[] s;
+    int[] rank;
+
+    public UnionFind(int size) {
+        s = new int[size];
+        rank = new int[size];
+        for (int i = 0; i < size; i++) {
+            s[i] = i;
+        }
+    }
+
+    public int find(int x) {
+        // path compression
+        if (s[x] != x) {
+            s[x] = find(s[x]);
+        }
+
+        return s[x];
+    }
+
+    public void union(int i, int j) {
+        int iBoss = find(i);
+        int jBoss = find(j);
+
+        if (iBoss != jBoss) {
+            if(iBoss < jBoss) {
+                s[jBoss] = iBoss;
+            } else {
+                s[iBoss] = jBoss;
+            }
+        }
+    }
+}
+```
+
+
+#### 完全版
+- 有path compressed
+- 有 union by rank
+```java
 class DisjointSet {
     int[] s;
     int[] rank;
@@ -106,9 +188,7 @@ class DisjointSet {
             '}';
     }
 }
-```
-
-。">
+```。">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://iamdurant.github.io/post/bing-cha-ji.html">
 <meta property="og:image" content="https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1730782842.png?x-oss-process=image%2Fformat%2Cwebp">
@@ -179,7 +259,47 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 </div>
 </div>
     <div id="content">
-<div class="markdown-body" id="postBody"><div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">class</span> <span class="pl-smi">DisjointSet</span> {
+<div class="markdown-body" id="postBody"><h4>竞赛版</h4>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">class</span> <span class="pl-smi">UnionFind</span> {
+    <span class="pl-smi">int</span>[] <span class="pl-s1">s</span>;
+    <span class="pl-smi">int</span>[] <span class="pl-s1">rank</span>;
+
+    <span class="pl-k">public</span> <span class="pl-smi">UnionFind</span>(<span class="pl-smi">int</span> <span class="pl-s1">size</span>) {
+        <span class="pl-s1">s</span> = <span class="pl-k">new</span> <span class="pl-smi">int</span>[<span class="pl-s1">size</span>];
+        <span class="pl-s1">rank</span> = <span class="pl-k">new</span> <span class="pl-smi">int</span>[<span class="pl-s1">size</span>];
+        <span class="pl-k">for</span> (<span class="pl-smi">int</span> <span class="pl-s1">i</span> = <span class="pl-c1">0</span>; <span class="pl-s1">i</span> &lt; <span class="pl-s1">size</span>; <span class="pl-s1">i</span>++) {
+            <span class="pl-s1">s</span>[<span class="pl-s1">i</span>] = <span class="pl-s1">i</span>;
+        }
+    }
+
+    <span class="pl-k">public</span> <span class="pl-smi">int</span> <span class="pl-en">find</span>(<span class="pl-smi">int</span> <span class="pl-s1">x</span>) {
+        <span class="pl-c">// path compression</span>
+        <span class="pl-k">if</span> (<span class="pl-s1">s</span>[<span class="pl-s1">x</span>] != <span class="pl-s1">x</span>) {
+            <span class="pl-s1">s</span>[<span class="pl-s1">x</span>] = <span class="pl-en">find</span>(<span class="pl-s1">s</span>[<span class="pl-s1">x</span>]);
+        }
+
+        <span class="pl-k">return</span> <span class="pl-s1">s</span>[<span class="pl-s1">x</span>];
+    }
+
+    <span class="pl-k">public</span> <span class="pl-smi">void</span> <span class="pl-en">union</span>(<span class="pl-smi">int</span> <span class="pl-s1">i</span>, <span class="pl-smi">int</span> <span class="pl-s1">j</span>) {
+        <span class="pl-smi">int</span> <span class="pl-s1">iBoss</span> = <span class="pl-en">find</span>(<span class="pl-s1">i</span>);
+        <span class="pl-smi">int</span> <span class="pl-s1">jBoss</span> = <span class="pl-en">find</span>(<span class="pl-s1">j</span>);
+
+        <span class="pl-k">if</span> (<span class="pl-s1">iBoss</span> != <span class="pl-s1">jBoss</span>) {
+            <span class="pl-k">if</span>(<span class="pl-s1">iBoss</span> &lt; <span class="pl-s1">jBoss</span>) {
+                <span class="pl-s1">s</span>[<span class="pl-s1">jBoss</span>] = <span class="pl-s1">iBoss</span>;
+            } <span class="pl-k">else</span> {
+                <span class="pl-s1">s</span>[<span class="pl-s1">iBoss</span>] = <span class="pl-s1">jBoss</span>;
+            }
+        }
+    }
+}</pre></div>
+<h4>完全版</h4>
+<ul>
+<li>有path compressed</li>
+<li>有 union by rank</li>
+</ul>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">class</span> <span class="pl-smi">DisjointSet</span> {
     <span class="pl-smi">int</span>[] <span class="pl-s1">s</span>;
     <span class="pl-smi">int</span>[] <span class="pl-s1">rank</span>;
 
