@@ -10,7 +10,7 @@
         let theme = localStorage.getItem("meek_theme") || "light";
         document.documentElement.setAttribute("data-color-mode", theme);
     </script>
-<meta name="description" content="#### 竞赛版
+<meta name="description" content="#### 通用版
 ```java
 class UnionFind {
     int[] s;
@@ -48,6 +48,36 @@ class UnionFind {
 }
 ```
 
+#### hash表版（没有初始化节点(i -> i)，需要在外部主动初始化）
+```java
+class UnionFind {
+    Map<Integer, Integer> map = new HashMap<>();
+
+    public UnionFind() {}
+
+    public int find(int x) {
+        int r = map.get(x);
+        if(map.get(x) != x) {
+            r = find(r);
+        }
+
+        return r;
+    }
+
+    public void union(int i, int j) {
+        int iBoss = find(i);
+        int jBoss = find(j);
+
+        if (iBoss != jBoss) {
+            if (iBoss < jBoss) {
+                map.put(jBoss, iBoss);
+            } else {
+                map.put(iBoss, jBoss);
+            }
+        }
+    }
+}
+```
 
 #### 完全版
 - 有path compressed
@@ -100,7 +130,7 @@ class DisjointSet {
 }
 ```。">
 <meta property="og:title" content="并查集">
-<meta property="og:description" content="#### 竞赛版
+<meta property="og:description" content="#### 通用版
 ```java
 class UnionFind {
     int[] s;
@@ -138,6 +168,36 @@ class UnionFind {
 }
 ```
 
+#### hash表版（没有初始化节点(i -> i)，需要在外部主动初始化）
+```java
+class UnionFind {
+    Map<Integer, Integer> map = new HashMap<>();
+
+    public UnionFind() {}
+
+    public int find(int x) {
+        int r = map.get(x);
+        if(map.get(x) != x) {
+            r = find(r);
+        }
+
+        return r;
+    }
+
+    public void union(int i, int j) {
+        int iBoss = find(i);
+        int jBoss = find(j);
+
+        if (iBoss != jBoss) {
+            if (iBoss < jBoss) {
+                map.put(jBoss, iBoss);
+            } else {
+                map.put(iBoss, jBoss);
+            }
+        }
+    }
+}
+```
 
 #### 完全版
 - 有path compressed
@@ -259,7 +319,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 </div>
 </div>
     <div id="content">
-<div class="markdown-body" id="postBody"><h4>竞赛版</h4>
+<div class="markdown-body" id="postBody"><h4>通用版</h4>
 <div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">class</span> <span class="pl-smi">UnionFind</span> {
     <span class="pl-smi">int</span>[] <span class="pl-s1">s</span>;
     <span class="pl-smi">int</span>[] <span class="pl-s1">rank</span>;
@@ -290,6 +350,34 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
                 <span class="pl-s1">s</span>[<span class="pl-s1">jBoss</span>] = <span class="pl-s1">iBoss</span>;
             } <span class="pl-k">else</span> {
                 <span class="pl-s1">s</span>[<span class="pl-s1">iBoss</span>] = <span class="pl-s1">jBoss</span>;
+            }
+        }
+    }
+}</pre></div>
+<h4>hash表版（没有初始化节点(i -&gt; i)，需要在外部主动初始化）</h4>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">class</span> <span class="pl-smi">UnionFind</span> {
+    <span class="pl-smi">Map</span>&lt;<span class="pl-smi">Integer</span>, <span class="pl-smi">Integer</span>&gt; <span class="pl-s1">map</span> = <span class="pl-k">new</span> <span class="pl-smi">HashMap</span>&lt;&gt;();
+
+    <span class="pl-k">public</span> <span class="pl-smi">UnionFind</span>() {}
+
+    <span class="pl-k">public</span> <span class="pl-smi">int</span> <span class="pl-en">find</span>(<span class="pl-smi">int</span> <span class="pl-s1">x</span>) {
+        <span class="pl-smi">int</span> <span class="pl-s1">r</span> = <span class="pl-s1">map</span>.<span class="pl-en">get</span>(<span class="pl-s1">x</span>);
+        <span class="pl-k">if</span>(<span class="pl-s1">map</span>.<span class="pl-en">get</span>(<span class="pl-s1">x</span>) != <span class="pl-s1">x</span>) {
+            <span class="pl-s1">r</span> = <span class="pl-en">find</span>(<span class="pl-s1">r</span>);
+        }
+
+        <span class="pl-k">return</span> <span class="pl-s1">r</span>;
+    }
+
+    <span class="pl-k">public</span> <span class="pl-smi">void</span> <span class="pl-en">union</span>(<span class="pl-smi">int</span> <span class="pl-s1">i</span>, <span class="pl-smi">int</span> <span class="pl-s1">j</span>) {
+        <span class="pl-smi">int</span> <span class="pl-s1">iBoss</span> = <span class="pl-en">find</span>(<span class="pl-s1">i</span>);
+        <span class="pl-smi">int</span> <span class="pl-s1">jBoss</span> = <span class="pl-en">find</span>(<span class="pl-s1">j</span>);
+
+        <span class="pl-k">if</span> (<span class="pl-s1">iBoss</span> != <span class="pl-s1">jBoss</span>) {
+            <span class="pl-k">if</span> (<span class="pl-s1">iBoss</span> &lt; <span class="pl-s1">jBoss</span>) {
+                <span class="pl-s1">map</span>.<span class="pl-en">put</span>(<span class="pl-s1">jBoss</span>, <span class="pl-s1">iBoss</span>);
+            } <span class="pl-k">else</span> {
+                <span class="pl-s1">map</span>.<span class="pl-en">put</span>(<span class="pl-s1">iBoss</span>, <span class="pl-s1">jBoss</span>);
             }
         }
     }
