@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html data-color-mode="light" data-dark-theme="dark" data-light-theme="light" lang="zh-CN">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href='https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/Primer/21.0.7/primer.css' rel='stylesheet' />
+    
+    <link rel="icon" href="https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1730782842.png?x-oss-process=image%2Fformat%2Cwebp"><script>
+        let theme = localStorage.getItem("meek_theme") || "light";
+        document.documentElement.setAttribute("data-color-mode", theme);
+    </script>
+<meta name="description" content="##### rabbitmq安装教程
+
+**环境：ubuntu**
+
+1. 直接使用[官网](https://www.rabbitmq.com/docs/install-debian#apt-quick-start-cloudsmith)提供的一键脚本，会安装较新的erlang以及rabbit-server
+
+2. 启用插件管理，开启web端
+
+   ```shell
+   rabbitmq-plugins enable rabbitmq_management
+   ```
+
+3. 默认web端只支持localhost访问，额外配置：
+
+   ```shell
+   # 添加用户
+   rabbitmqctl add_user jasper pubgM666
+   # 设置为管理员
+   rabbitmqctl set_user_tags jasper administrator
+   # 授予权限
+   rabbitmqctl set_permissions -p / jasper '.*' '.*' '.*'
+   # restart
+   systemctl restart rabbitmq-server
+   ```
+
+
+
+##### tabbitmq简单使用
+
+###### 依赖
+
+```xml
+<dependency>
+    <groupId>com.rabbitmq</groupId>
+    <artifactId>amqp-client</artifactId>
+    <version>5.19.0</version>
+</dependency>
+
+<!-- slf4j日志门面 -->
+<dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>slf4j-api</artifactId>
+    <version>2.0.11</version>
+</dependency>
+
+<!-- slf4j内部实现 -->
+<dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>slf4j-simple</artifactId>
+    <version>2.0.11</version>
+</dependency>
+```
+
+
+
+###### hello world
+
+1. producer
+
+   ```java
+   package wwb.rabbitmq.producer;
+   
+   import com.rabbitmq.client.Channel;
+   import com.rabbitmq.client.Connection;
+   import com.rabbitmq.client.ConnectionFactory;
+   
+   import java.nio.charset.StandardCharsets;
+   
+   public class HelloProducer {
+       public static void main(String[] args) {
+           ConnectionFactory factory = new ConnectionFactory();
+           factory.setHost('172.24.192.134');
+           factory.setPort(5672);
+           factory.setUsername('jasper');
+           factory.setPassword('pubgM666');
+           factory.setVirtualHost('/');
+   
+           try (Connection connection = factory.newConnection();
+                Channel channel = connection.createChannel()) {
+               channel.queueDeclare('hello', false, false, false, null);
+               channel.basicPublish('', 'hello', null, '你好'.getBytes(StandardCharsets.UTF_8));
+           } catch (Exception e) {
+   
+           }
+       }
+   }
+   ```
+
+   
+
+2. consumer
+
+   ```java
+   package wwb.rabbitmq.consumer;
+   
+   import com.rabbitmq.client.Channel;
+   import com.rabbitmq.client.Connection;
+   import com.rabbitmq.client.ConnectionFactory;
+   import com.rabbitmq.client.DeliverCallback;
+   
+   public class HelloConsumer {
+       public static void main(String[] args) throws Exception{
+           ConnectionFactory factory = new ConnectionFactory();
+           factory.setHost('172.24.192.134');
+           factory.setPort(5672);
+           factory.setUsername('jasper');
+           factory.setPassword('pubgM666');
+           factory.setVirtualHost('/');
+   
+           Connection connection = factory.newConnection();
+           Channel channel = connection.createChannel();
+   
+           channel.queueDeclare('hello', false, false, false, null);
+           DeliverCallback deliverCallback = (consumerTag, mess) -> {
+               String message = new String(mess.getBody(), 'UTF-8');
+               System.out.println(message);
+           };
+           channel.basicConsume('hello', true, deliverCallback, tag -> {});
+       }
+   }
+   ```
+
+###### acknowlegement
+
+```java
+public static void main(String[] args) throws Exception{
+    ConnectionFactory factory = new ConnectionFactory();
+    factory.setHost('172.24.192.134');
+    factory.setPort(5672);
+    factory.setUsername('jasper');
+    factory.setPassword('pubgM666');
+
+    Connection connection = factory.newConnection();
+    Channel channel = connection.createChannel();
+
+    channel.queueDeclare('workqueues', false, false, false, null);
+    // 设置一次只接受一个未消费消息
+    channel.basicQos(1); 
+
+    Random random = new Random();
+    StringBuilder sb = new StringBuilder();
+    for(int i = 0;i < 4;i++) {
+        sb.append((char) (random.nextInt(26) + 97));
+    }
+    String workerName = sb.toString();
+
+    DeliverCallback callback = (tag, entity) -> {
+        String body = new String(entity.getBody(), StandardCharsets.UTF_8);
+        for(int i = 0;i < body.length();++i) {
+            if(body.charAt(i) == '.') {
+                try {
+                    TimeUnit.MILLISECONDS.sleep(300);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        // 手动返回ack
+        channel.basicAck(entity.getEnvelope().getDeliveryTag(), false);
+        System.out.println(workerName + '消费了：' + body);
+    };
+
+    channel.basicConsume('workqueues', false, callback, tag -> {});
+}
+```
+
+###### message durability
+
+如何确保消息不会丢失：
+
+1. 队列持久化，声明队列时，第二个参数
+
+   ```java
+   channel.queueDeclare('workqueues', true, false, false, null);
+   ```
+
+2. 消息持久化，发送消息时声明
+
+   ```java
+   channel.basicPublish('', 'workqueues', MessageProperties.PERSISTENT_TEXT_PLAIN, body.getBytes(StandardCharsets.UTF_8));
+   ```
+
+如此过后消息可靠性大幅提升，已经可以满足大部分情况，但是还是存在一个小的窗口导致消息丢失，因为rabbitmq收到消息时，并不会保证将每条消息都刷盘，而是存在缓冲区。">
+<meta property="og:title" content="rabbitmq_java">
+<meta property="og:description" content="##### rabbitmq安装教程
+
+**环境：ubuntu**
+
+1. 直接使用[官网](https://www.rabbitmq.com/docs/install-debian#apt-quick-start-cloudsmith)提供的一键脚本，会安装较新的erlang以及rabbit-server
+
+2. 启用插件管理，开启web端
+
+   ```shell
+   rabbitmq-plugins enable rabbitmq_management
+   ```
+
+3. 默认web端只支持localhost访问，额外配置：
+
+   ```shell
+   # 添加用户
+   rabbitmqctl add_user jasper pubgM666
+   # 设置为管理员
+   rabbitmqctl set_user_tags jasper administrator
+   # 授予权限
+   rabbitmqctl set_permissions -p / jasper '.*' '.*' '.*'
+   # restart
+   systemctl restart rabbitmq-server
+   ```
+
+
+
+##### tabbitmq简单使用
+
+###### 依赖
+
+```xml
+<dependency>
+    <groupId>com.rabbitmq</groupId>
+    <artifactId>amqp-client</artifactId>
+    <version>5.19.0</version>
+</dependency>
+
+<!-- slf4j日志门面 -->
+<dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>slf4j-api</artifactId>
+    <version>2.0.11</version>
+</dependency>
+
+<!-- slf4j内部实现 -->
+<dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>slf4j-simple</artifactId>
+    <version>2.0.11</version>
+</dependency>
+```
+
+
+
+###### hello world
+
+1. producer
+
+   ```java
+   package wwb.rabbitmq.producer;
+   
+   import com.rabbitmq.client.Channel;
+   import com.rabbitmq.client.Connection;
+   import com.rabbitmq.client.ConnectionFactory;
+   
+   import java.nio.charset.StandardCharsets;
+   
+   public class HelloProducer {
+       public static void main(String[] args) {
+           ConnectionFactory factory = new ConnectionFactory();
+           factory.setHost('172.24.192.134');
+           factory.setPort(5672);
+           factory.setUsername('jasper');
+           factory.setPassword('pubgM666');
+           factory.setVirtualHost('/');
+   
+           try (Connection connection = factory.newConnection();
+                Channel channel = connection.createChannel()) {
+               channel.queueDeclare('hello', false, false, false, null);
+               channel.basicPublish('', 'hello', null, '你好'.getBytes(StandardCharsets.UTF_8));
+           } catch (Exception e) {
+   
+           }
+       }
+   }
+   ```
+
+   
+
+2. consumer
+
+   ```java
+   package wwb.rabbitmq.consumer;
+   
+   import com.rabbitmq.client.Channel;
+   import com.rabbitmq.client.Connection;
+   import com.rabbitmq.client.ConnectionFactory;
+   import com.rabbitmq.client.DeliverCallback;
+   
+   public class HelloConsumer {
+       public static void main(String[] args) throws Exception{
+           ConnectionFactory factory = new ConnectionFactory();
+           factory.setHost('172.24.192.134');
+           factory.setPort(5672);
+           factory.setUsername('jasper');
+           factory.setPassword('pubgM666');
+           factory.setVirtualHost('/');
+   
+           Connection connection = factory.newConnection();
+           Channel channel = connection.createChannel();
+   
+           channel.queueDeclare('hello', false, false, false, null);
+           DeliverCallback deliverCallback = (consumerTag, mess) -> {
+               String message = new String(mess.getBody(), 'UTF-8');
+               System.out.println(message);
+           };
+           channel.basicConsume('hello', true, deliverCallback, tag -> {});
+       }
+   }
+   ```
+
+###### acknowlegement
+
+```java
+public static void main(String[] args) throws Exception{
+    ConnectionFactory factory = new ConnectionFactory();
+    factory.setHost('172.24.192.134');
+    factory.setPort(5672);
+    factory.setUsername('jasper');
+    factory.setPassword('pubgM666');
+
+    Connection connection = factory.newConnection();
+    Channel channel = connection.createChannel();
+
+    channel.queueDeclare('workqueues', false, false, false, null);
+    // 设置一次只接受一个未消费消息
+    channel.basicQos(1); 
+
+    Random random = new Random();
+    StringBuilder sb = new StringBuilder();
+    for(int i = 0;i < 4;i++) {
+        sb.append((char) (random.nextInt(26) + 97));
+    }
+    String workerName = sb.toString();
+
+    DeliverCallback callback = (tag, entity) -> {
+        String body = new String(entity.getBody(), StandardCharsets.UTF_8);
+        for(int i = 0;i < body.length();++i) {
+            if(body.charAt(i) == '.') {
+                try {
+                    TimeUnit.MILLISECONDS.sleep(300);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        // 手动返回ack
+        channel.basicAck(entity.getEnvelope().getDeliveryTag(), false);
+        System.out.println(workerName + '消费了：' + body);
+    };
+
+    channel.basicConsume('workqueues', false, callback, tag -> {});
+}
+```
+
+###### message durability
+
+如何确保消息不会丢失：
+
+1. 队列持久化，声明队列时，第二个参数
+
+   ```java
+   channel.queueDeclare('workqueues', true, false, false, null);
+   ```
+
+2. 消息持久化，发送消息时声明
+
+   ```java
+   channel.basicPublish('', 'workqueues', MessageProperties.PERSISTENT_TEXT_PLAIN, body.getBytes(StandardCharsets.UTF_8));
+   ```
+
+如此过后消息可靠性大幅提升，已经可以满足大部分情况，但是还是存在一个小的窗口导致消息丢失，因为rabbitmq收到消息时，并不会保证将每条消息都刷盘，而是存在缓冲区。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://iamdurant.github.io/post/rabbitmq_java.html">
+<meta property="og:image" content="https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1730782842.png?x-oss-process=image%2Fformat%2Cwebp">
+<title>rabbitmq_java</title>
+<link href="//unpkg.com/@wooorm/starry-night@2.1.1/style/both.css" rel="stylesheet" />
+
+
+</head>
+<style>
+body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;padding: 45px;font-size: 16px;font-family: sans-serif;line-height: 1.25;}
+#header{display:flex;padding-bottom:8px;border-bottom: 1px solid var(--borderColor-muted, var(--color-border-muted));margin-bottom: 16px;}
+#footer {margin-top:64px; text-align: center;font-size: small;}
+
+</style>
+
+<style>
+.postTitle{margin: auto 0;font-size:40px;font-weight:bold;}
+.title-right{display:flex;margin:auto 0 0 auto;}
+.title-right .circle{padding: 14px 16px;margin-right:8px;}
+#postBody{border-bottom: 1px solid var(--color-border-default);padding-bottom:36px;}
+#postBody hr{height:2px;}
+#cmButton{height:48px;margin-top:48px;}
+#comments{margin-top:64px;}
+.g-emoji{font-size:24px;}
+@media (max-width: 600px) {
+    body {padding: 8px;}
+    .postTitle{font-size:24px;}
+}
+.copy-feedback {
+    display: none;
+    position: absolute;
+    top: 10px;
+    right: 50px;
+    color: var(--color-fg-on-emphasis);
+    background-color: var(--color-fg-muted);
+    border-radius: 3px;
+    padding: 5px 8px;
+    font-size: 12px;
+}
+</style>
+
+
+
+
+<body>
+    <div id="header">
+<h1 class="postTitle">rabbitmq_java</h1>
+<div class="title-right">
+    <a href="https://iamdurant.github.io" id="buttonHome" class="btn btn-invisible circle" title="首页">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathHome" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+    <a href="https://github.com/iamdurant/iamdurant.github.io/issues/35" target="_blank" class="btn btn-invisible circle" title="Issue">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathIssue" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+
+    <a class="btn btn-invisible circle" onclick="modeSwitch();" title="切换主题">
+        <svg class="octicon" width="16" height="16" >
+            <path id="themeSwitch" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+
+</div>
+</div>
+    <div id="content">
+<div class="markdown-body" id="postBody"><h5>rabbitmq安装教程</h5>
+<p><strong>环境：ubuntu</strong></p>
+<ol>
+<li>
+<p>直接使用<a href="https://www.rabbitmq.com/docs/install-debian#apt-quick-start-cloudsmith" rel="nofollow">官网</a>提供的一键脚本，会安装较新的erlang以及rabbit-server</p>
+</li>
+<li>
+<p>启用插件管理，开启web端</p>
+<div class="highlight highlight-source-shell"><pre class="notranslate">rabbitmq-plugins <span class="pl-c1">enable</span> rabbitmq_management</pre></div>
+</li>
+<li>
+<p>默认web端只支持localhost访问，额外配置：</p>
+<div class="highlight highlight-source-shell"><pre class="notranslate"><span class="pl-c"><span class="pl-c">#</span> 添加用户</span>
+rabbitmqctl add_user jasper pubgM666
+<span class="pl-c"><span class="pl-c">#</span> 设置为管理员</span>
+rabbitmqctl set_user_tags jasper administrator
+<span class="pl-c"><span class="pl-c">#</span> 授予权限</span>
+rabbitmqctl set_permissions -p / jasper <span class="pl-s"><span class="pl-pds">"</span>.*<span class="pl-pds">"</span></span> <span class="pl-s"><span class="pl-pds">"</span>.*<span class="pl-pds">"</span></span> <span class="pl-s"><span class="pl-pds">"</span>.*<span class="pl-pds">"</span></span>
+<span class="pl-c"><span class="pl-c">#</span> restart</span>
+systemctl restart rabbitmq-server</pre></div>
+</li>
+</ol>
+<h5>tabbitmq简单使用</h5>
+<h6>依赖</h6>
+<div class="highlight highlight-text-xml"><pre class="notranslate">&lt;<span class="pl-ent">dependency</span>&gt;
+    &lt;<span class="pl-ent">groupId</span>&gt;com.rabbitmq&lt;/<span class="pl-ent">groupId</span>&gt;
+    &lt;<span class="pl-ent">artifactId</span>&gt;amqp-client&lt;/<span class="pl-ent">artifactId</span>&gt;
+    &lt;<span class="pl-ent">version</span>&gt;5.19.0&lt;/<span class="pl-ent">version</span>&gt;
+&lt;/<span class="pl-ent">dependency</span>&gt;
+
+<span class="pl-c"><span class="pl-c">&lt;!--</span> slf4j日志门面 <span class="pl-c">--&gt;</span></span>
+&lt;<span class="pl-ent">dependency</span>&gt;
+    &lt;<span class="pl-ent">groupId</span>&gt;org.slf4j&lt;/<span class="pl-ent">groupId</span>&gt;
+    &lt;<span class="pl-ent">artifactId</span>&gt;slf4j-api&lt;/<span class="pl-ent">artifactId</span>&gt;
+    &lt;<span class="pl-ent">version</span>&gt;2.0.11&lt;/<span class="pl-ent">version</span>&gt;
+&lt;/<span class="pl-ent">dependency</span>&gt;
+
+<span class="pl-c"><span class="pl-c">&lt;!--</span> slf4j内部实现 <span class="pl-c">--&gt;</span></span>
+&lt;<span class="pl-ent">dependency</span>&gt;
+    &lt;<span class="pl-ent">groupId</span>&gt;org.slf4j&lt;/<span class="pl-ent">groupId</span>&gt;
+    &lt;<span class="pl-ent">artifactId</span>&gt;slf4j-simple&lt;/<span class="pl-ent">artifactId</span>&gt;
+    &lt;<span class="pl-ent">version</span>&gt;2.0.11&lt;/<span class="pl-ent">version</span>&gt;
+&lt;/<span class="pl-ent">dependency</span>&gt;</pre></div>
+<h6>hello world</h6>
+<ol>
+<li>
+<p>producer</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">package</span> <span class="pl-s1">wwb</span>.<span class="pl-s1">rabbitmq</span>.<span class="pl-s1">producer</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">com</span>.<span class="pl-s1">rabbitmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">Channel</span>;
+<span class="pl-k">import</span> <span class="pl-s1">com</span>.<span class="pl-s1">rabbitmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">Connection</span>;
+<span class="pl-k">import</span> <span class="pl-s1">com</span>.<span class="pl-s1">rabbitmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">ConnectionFactory</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">java</span>.<span class="pl-s1">nio</span>.<span class="pl-s1">charset</span>.<span class="pl-s1">StandardCharsets</span>;
+
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-smi">HelloProducer</span> {
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) {
+        <span class="pl-smi">ConnectionFactory</span> <span class="pl-s1">factory</span> = <span class="pl-k">new</span> <span class="pl-smi">ConnectionFactory</span>();
+        <span class="pl-s1">factory</span>.<span class="pl-en">setHost</span>(<span class="pl-s">"172.24.192.134"</span>);
+        <span class="pl-s1">factory</span>.<span class="pl-en">setPort</span>(<span class="pl-c1">5672</span>);
+        <span class="pl-s1">factory</span>.<span class="pl-en">setUsername</span>(<span class="pl-s">"jasper"</span>);
+        <span class="pl-s1">factory</span>.<span class="pl-en">setPassword</span>(<span class="pl-s">"pubgM666"</span>);
+        <span class="pl-s1">factory</span>.<span class="pl-en">setVirtualHost</span>(<span class="pl-s">"/"</span>);
+
+        <span class="pl-k">try</span> (<span class="pl-smi">Connection</span> <span class="pl-s1">connection</span> = <span class="pl-s1">factory</span>.<span class="pl-en">newConnection</span>();
+             <span class="pl-smi">Channel</span> <span class="pl-s1">channel</span> = <span class="pl-s1">connection</span>.<span class="pl-en">createChannel</span>()) {
+            <span class="pl-s1">channel</span>.<span class="pl-en">queueDeclare</span>(<span class="pl-s">"hello"</span>, <span class="pl-c1">false</span>, <span class="pl-c1">false</span>, <span class="pl-c1">false</span>, <span class="pl-c1">null</span>);
+            <span class="pl-s1">channel</span>.<span class="pl-en">basicPublish</span>(<span class="pl-s">""</span>, <span class="pl-s">"hello"</span>, <span class="pl-c1">null</span>, <span class="pl-s">"你好"</span>.<span class="pl-en">getBytes</span>(<span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>));
+        } <span class="pl-k">catch</span> (<span class="pl-smi">Exception</span> <span class="pl-s1">e</span>) {
+
+        }
+    }
+}</pre></div>
+</li>
+<li>
+<p>consumer</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">package</span> <span class="pl-s1">wwb</span>.<span class="pl-s1">rabbitmq</span>.<span class="pl-s1">consumer</span>;
+
+<span class="pl-k">import</span> <span class="pl-s1">com</span>.<span class="pl-s1">rabbitmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">Channel</span>;
+<span class="pl-k">import</span> <span class="pl-s1">com</span>.<span class="pl-s1">rabbitmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">Connection</span>;
+<span class="pl-k">import</span> <span class="pl-s1">com</span>.<span class="pl-s1">rabbitmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">ConnectionFactory</span>;
+<span class="pl-k">import</span> <span class="pl-s1">com</span>.<span class="pl-s1">rabbitmq</span>.<span class="pl-s1">client</span>.<span class="pl-s1">DeliverCallback</span>;
+
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-smi">HelloConsumer</span> {
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
+        <span class="pl-smi">ConnectionFactory</span> <span class="pl-s1">factory</span> = <span class="pl-k">new</span> <span class="pl-smi">ConnectionFactory</span>();
+        <span class="pl-s1">factory</span>.<span class="pl-en">setHost</span>(<span class="pl-s">"172.24.192.134"</span>);
+        <span class="pl-s1">factory</span>.<span class="pl-en">setPort</span>(<span class="pl-c1">5672</span>);
+        <span class="pl-s1">factory</span>.<span class="pl-en">setUsername</span>(<span class="pl-s">"jasper"</span>);
+        <span class="pl-s1">factory</span>.<span class="pl-en">setPassword</span>(<span class="pl-s">"pubgM666"</span>);
+        <span class="pl-s1">factory</span>.<span class="pl-en">setVirtualHost</span>(<span class="pl-s">"/"</span>);
+
+        <span class="pl-smi">Connection</span> <span class="pl-s1">connection</span> = <span class="pl-s1">factory</span>.<span class="pl-en">newConnection</span>();
+        <span class="pl-smi">Channel</span> <span class="pl-s1">channel</span> = <span class="pl-s1">connection</span>.<span class="pl-en">createChannel</span>();
+
+        <span class="pl-s1">channel</span>.<span class="pl-en">queueDeclare</span>(<span class="pl-s">"hello"</span>, <span class="pl-c1">false</span>, <span class="pl-c1">false</span>, <span class="pl-c1">false</span>, <span class="pl-c1">null</span>);
+        <span class="pl-smi">DeliverCallback</span> <span class="pl-s1">deliverCallback</span> = (<span class="pl-s1">consumerTag</span>, <span class="pl-s1">mess</span>) -&gt; {
+            <span class="pl-smi">String</span> <span class="pl-s1">message</span> = <span class="pl-k">new</span> <span class="pl-smi">String</span>(<span class="pl-s1">mess</span>.<span class="pl-en">getBody</span>(), <span class="pl-s">"UTF-8"</span>);
+            <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s1">message</span>);
+        };
+        <span class="pl-s1">channel</span>.<span class="pl-en">basicConsume</span>(<span class="pl-s">"hello"</span>, <span class="pl-c1">true</span>, <span class="pl-s1">deliverCallback</span>, <span class="pl-s1">tag</span> -&gt; {});
+    }
+}</pre></div>
+</li>
+</ol>
+<h6>acknowlegement</h6>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
+    <span class="pl-smi">ConnectionFactory</span> <span class="pl-s1">factory</span> = <span class="pl-k">new</span> <span class="pl-smi">ConnectionFactory</span>();
+    <span class="pl-s1">factory</span>.<span class="pl-en">setHost</span>(<span class="pl-s">"172.24.192.134"</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setPort</span>(<span class="pl-c1">5672</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setUsername</span>(<span class="pl-s">"jasper"</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setPassword</span>(<span class="pl-s">"pubgM666"</span>);
+
+    <span class="pl-smi">Connection</span> <span class="pl-s1">connection</span> = <span class="pl-s1">factory</span>.<span class="pl-en">newConnection</span>();
+    <span class="pl-smi">Channel</span> <span class="pl-s1">channel</span> = <span class="pl-s1">connection</span>.<span class="pl-en">createChannel</span>();
+
+    <span class="pl-s1">channel</span>.<span class="pl-en">queueDeclare</span>(<span class="pl-s">"workqueues"</span>, <span class="pl-c1">false</span>, <span class="pl-c1">false</span>, <span class="pl-c1">false</span>, <span class="pl-c1">null</span>);
+    <span class="pl-c">// 设置一次只接受一个未消费消息</span>
+    <span class="pl-s1">channel</span>.<span class="pl-en">basicQos</span>(<span class="pl-c1">1</span>); 
+
+    <span class="pl-smi">Random</span> <span class="pl-s1">random</span> = <span class="pl-k">new</span> <span class="pl-smi">Random</span>();
+    <span class="pl-smi">StringBuilder</span> <span class="pl-s1">sb</span> = <span class="pl-k">new</span> <span class="pl-smi">StringBuilder</span>();
+    <span class="pl-k">for</span>(<span class="pl-smi">int</span> <span class="pl-s1">i</span> = <span class="pl-c1">0</span>;<span class="pl-s1">i</span> &lt; <span class="pl-c1">4</span>;<span class="pl-s1">i</span>++) {
+        <span class="pl-s1">sb</span>.<span class="pl-en">append</span>((<span class="pl-smi">char</span>) (<span class="pl-s1">random</span>.<span class="pl-en">nextInt</span>(<span class="pl-c1">26</span>) + <span class="pl-c1">97</span>));
+    }
+    <span class="pl-smi">String</span> <span class="pl-s1">workerName</span> = <span class="pl-s1">sb</span>.<span class="pl-en">toString</span>();
+
+    <span class="pl-smi">DeliverCallback</span> <span class="pl-s1">callback</span> = (<span class="pl-s1">tag</span>, <span class="pl-s1">entity</span>) -&gt; {
+        <span class="pl-smi">String</span> <span class="pl-s1">body</span> = <span class="pl-k">new</span> <span class="pl-smi">String</span>(<span class="pl-s1">entity</span>.<span class="pl-en">getBody</span>(), <span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>);
+        <span class="pl-k">for</span>(<span class="pl-smi">int</span> <span class="pl-s1">i</span> = <span class="pl-c1">0</span>;<span class="pl-s1">i</span> &lt; <span class="pl-s1">body</span>.<span class="pl-en">length</span>();++<span class="pl-s1">i</span>) {
+            <span class="pl-k">if</span>(<span class="pl-s1">body</span>.<span class="pl-en">charAt</span>(<span class="pl-s1">i</span>) == <span class="pl-s">'.'</span>) {
+                <span class="pl-k">try</span> {
+                    <span class="pl-smi">TimeUnit</span>.<span class="pl-c1">MILLISECONDS</span>.<span class="pl-en">sleep</span>(<span class="pl-c1">300</span>);
+                } <span class="pl-k">catch</span> (<span class="pl-smi">InterruptedException</span> <span class="pl-s1">e</span>) {
+                    <span class="pl-k">throw</span> <span class="pl-k">new</span> <span class="pl-smi">RuntimeException</span>(<span class="pl-s1">e</span>);
+                }
+            }
+        }
+        <span class="pl-c">// 手动返回ack</span>
+        <span class="pl-s1">channel</span>.<span class="pl-en">basicAck</span>(<span class="pl-s1">entity</span>.<span class="pl-en">getEnvelope</span>().<span class="pl-en">getDeliveryTag</span>(), <span class="pl-c1">false</span>);
+        <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s1">workerName</span> + <span class="pl-s">"消费了："</span> + <span class="pl-s1">body</span>);
+    };
+
+    <span class="pl-s1">channel</span>.<span class="pl-en">basicConsume</span>(<span class="pl-s">"workqueues"</span>, <span class="pl-c1">false</span>, <span class="pl-s1">callback</span>, <span class="pl-s1">tag</span> -&gt; {});
+}</pre></div>
+<h6>message durability</h6>
+<p>如何确保消息不会丢失：</p>
+<ol>
+<li>
+<p>队列持久化，声明队列时，第二个参数</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-s1">channel</span>.<span class="pl-en">queueDeclare</span>(<span class="pl-s">"workqueues"</span>, <span class="pl-c1">true</span>, <span class="pl-c1">false</span>, <span class="pl-c1">false</span>, <span class="pl-c1">null</span>);</pre></div>
+</li>
+<li>
+<p>消息持久化，发送消息时声明</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-s1">channel</span>.<span class="pl-en">basicPublish</span>(<span class="pl-s">""</span>, <span class="pl-s">"workqueues"</span>, <span class="pl-smi">MessageProperties</span>.<span class="pl-c1">PERSISTENT_TEXT_PLAIN</span>, <span class="pl-s1">body</span>.<span class="pl-en">getBytes</span>(<span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>));</pre></div>
+</li>
+</ol>
+<p>如此过后消息可靠性大幅提升，已经可以满足大部分情况，但是还是存在一个小的窗口导致消息丢失，因为rabbitmq收到消息时，并不会保证将每条消息都刷盘，而是存在缓冲区。若需要保证百分百不丢失，则还需要<strong>publisher confirm</strong>。</p>
+<h5>exchanges</h5>
+<p>交换机类型：</p>
+<ul>
+<li>direct</li>
+<li>topic</li>
+<li>headers</li>
+<li>fanout</li>
+</ul>
+<p>如何声明交换机</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-s1">channel</span>.<span class="pl-en">exchangeDeclare</span>(<span class="pl-s">"exchangeName"</span>, <span class="pl-s">"fanout"</span>);</pre></div>
+<h6>temporary queue</h6>
+<p>如何声明一个临时队列，只要没有consumer，那么此队列会被删除</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-smi">String</span> <span class="pl-s1">queueName</span> = <span class="pl-s1">channel</span>.<span class="pl-en">declareQueue</span>().<span class="pl-en">getQueue</span>();</pre></div>
+<h6>queue bind</h6>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-s1">channel</span>.<span class="pl-en">queueBind</span>(<span class="pl-s1">queueName</span>, <span class="pl-s">"exchangeName"</span>, <span class="pl-s">""</span>);</pre></div>
+<h6>fanout广播示例</h6>
+<ol>
+<li>
+<p>producer</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
+    <span class="pl-smi">ConnectionFactory</span> <span class="pl-s1">factory</span> = <span class="pl-k">new</span> <span class="pl-smi">ConnectionFactory</span>();
+    <span class="pl-s1">factory</span>.<span class="pl-en">setHost</span>(<span class="pl-s">"172.24.192.134"</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setPort</span>(<span class="pl-c1">5672</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setUsername</span>(<span class="pl-s">"jasper"</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setPassword</span>(<span class="pl-s">"pubgM666"</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setVirtualHost</span>(<span class="pl-s">"/"</span>);
+
+    <span class="pl-smi">Connection</span> <span class="pl-s1">connection</span> = <span class="pl-s1">factory</span>.<span class="pl-en">newConnection</span>();
+    <span class="pl-smi">Channel</span> <span class="pl-s1">channel</span> = <span class="pl-s1">connection</span>.<span class="pl-en">createChannel</span>();
+
+    <span class="pl-c">// 声明exchange</span>
+    <span class="pl-s1">channel</span>.<span class="pl-en">exchangeDeclare</span>(<span class="pl-s">"logs"</span>, <span class="pl-s">"fanout"</span>);
+    <span class="pl-k">for</span>(<span class="pl-smi">int</span> <span class="pl-s1">i</span> = <span class="pl-c1">0</span>;<span class="pl-s1">i</span> &lt; <span class="pl-c1">10</span>;++<span class="pl-s1">i</span>) {
+        <span class="pl-s1">channel</span>.<span class="pl-en">basicPublish</span>(<span class="pl-s">"logs"</span>, <span class="pl-s">""</span>, <span class="pl-c1">null</span>, (<span class="pl-s">"logs-"</span> + <span class="pl-s1">i</span>).<span class="pl-en">getBytes</span>(<span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>));
+    }
+
+    <span class="pl-s1">connection</span>.<span class="pl-en">close</span>();
+}</pre></div>
+</li>
+<li>
+<p>consumer</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
+    <span class="pl-smi">ConnectionFactory</span> <span class="pl-s1">factory</span> = <span class="pl-k">new</span> <span class="pl-smi">ConnectionFactory</span>();
+    <span class="pl-s1">factory</span>.<span class="pl-en">setHost</span>(<span class="pl-s">"172.24.192.134"</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setPort</span>(<span class="pl-c1">5672</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setUsername</span>(<span class="pl-s">"jasper"</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setPassword</span>(<span class="pl-s">"pubgM666"</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setVirtualHost</span>(<span class="pl-s">"/"</span>);
+
+    <span class="pl-smi">Connection</span> <span class="pl-s1">connection</span> = <span class="pl-s1">factory</span>.<span class="pl-en">newConnection</span>();
+    <span class="pl-smi">Channel</span> <span class="pl-s1">channel</span> = <span class="pl-s1">connection</span>.<span class="pl-en">createChannel</span>();
+
+    <span class="pl-s1">channel</span>.<span class="pl-en">basicQos</span>(<span class="pl-c1">1</span>);
+    <span class="pl-s1">channel</span>.<span class="pl-en">exchangeDeclare</span>(<span class="pl-s">"logs"</span>, <span class="pl-s">"fanout"</span>);
+
+    <span class="pl-smi">String</span> <span class="pl-s1">queueName</span> = <span class="pl-s1">channel</span>.<span class="pl-en">queueDeclare</span>().<span class="pl-en">getQueue</span>();
+    <span class="pl-s1">channel</span>.<span class="pl-en">queueBind</span>(<span class="pl-s1">queueName</span>, <span class="pl-s">"logs"</span>, <span class="pl-s">""</span>);
+
+    <span class="pl-smi">DeliverCallback</span> <span class="pl-s1">callback</span> = (<span class="pl-s1">tagName</span>, <span class="pl-s1">entity</span>) -&gt; {
+        <span class="pl-smi">String</span> <span class="pl-s1">body</span> = <span class="pl-k">new</span> <span class="pl-smi">String</span>(<span class="pl-s1">entity</span>.<span class="pl-en">getBody</span>(), <span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>);
+        <span class="pl-s1">channel</span>.<span class="pl-en">basicAck</span>(<span class="pl-s1">entity</span>.<span class="pl-en">getEnvelope</span>().<span class="pl-en">getDeliveryTag</span>(), <span class="pl-c1">false</span>);
+        <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s">"消费了："</span> + <span class="pl-s1">body</span>);
+    };
+
+    <span class="pl-s1">channel</span>.<span class="pl-en">basicConsume</span>(<span class="pl-s1">queueName</span>, <span class="pl-c1">false</span>, <span class="pl-s1">callback</span>, <span class="pl-s1">tag</span> -&gt; {});
+}</pre></div>
+</li>
+</ol>
+<h6>direct exchange</h6>
+<blockquote>
+<p>direct交换机通过routing key与binding_key进行exchange与queue的匹配，如果message的routing_key不存在匹配的message，则exchange将会discard这条消息。direct可以实现fanout的广播效果，只需多个queue使用相同的binding_key。</p>
+<p>exchange与queue可以绑定多个binding_key</p>
+</blockquote>
+<p>使用示例：</p>
+<p>simple logginh system：</p>
+<ul>
+<li>producer生产的日志消息将会带上日志级别的routing_key</li>
+<li>console consumer将消费所有日志级别</li>
+<li>file consumer只消费error日志级别</li>
+</ul>
+<ol>
+<li>
+<p>producer</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
+    <span class="pl-smi">ConnectionFactory</span> <span class="pl-s1">factory</span> = <span class="pl-k">new</span> <span class="pl-smi">ConnectionFactory</span>();
+    <span class="pl-s1">factory</span>.<span class="pl-en">setHost</span>(<span class="pl-s">"172.24.192.134"</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setPort</span>(<span class="pl-c1">5672</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setUsername</span>(<span class="pl-s">"jasper"</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setPassword</span>(<span class="pl-s">"pubgM666"</span>);
+
+    <span class="pl-smi">Connection</span> <span class="pl-s1">connection</span> = <span class="pl-s1">factory</span>.<span class="pl-en">newConnection</span>();
+    <span class="pl-smi">Channel</span> <span class="pl-s1">channel</span> = <span class="pl-s1">connection</span>.<span class="pl-en">createChannel</span>();
+
+    <span class="pl-s1">channel</span>.<span class="pl-en">exchangeDeclare</span>(<span class="pl-s">"direct_logs"</span>, <span class="pl-s">"direct"</span>);
+
+    <span class="pl-s1">channel</span>.<span class="pl-en">basicPublish</span>(<span class="pl-s">"direct_logs"</span>, <span class="pl-s1">args</span>[<span class="pl-c1">0</span>], <span class="pl-c1">null</span>, (<span class="pl-s1">args</span>[<span class="pl-c1">0</span>] + <span class="pl-s">"消息"</span>).<span class="pl-en">getBytes</span>(<span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>));
+    <span class="pl-s1">connection</span>.<span class="pl-en">close</span>();
+}</pre></div>
+</li>
+<li>
+<p>consumer</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span> {
+    <span class="pl-smi">ConnectionFactory</span> <span class="pl-s1">factory</span> = <span class="pl-k">new</span> <span class="pl-smi">ConnectionFactory</span>();
+    <span class="pl-s1">factory</span>.<span class="pl-en">setHost</span>(<span class="pl-s">"172.24.192.134"</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setPort</span>(<span class="pl-c1">5672</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setUsername</span>(<span class="pl-s">"jasper"</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setPassword</span>(<span class="pl-s">"pubgM666"</span>);
+
+    <span class="pl-smi">Connection</span> <span class="pl-s1">connection</span> = <span class="pl-s1">factory</span>.<span class="pl-en">newConnection</span>();
+    <span class="pl-smi">Channel</span> <span class="pl-s1">channel</span> = <span class="pl-s1">connection</span>.<span class="pl-en">createChannel</span>();
+
+    <span class="pl-s1">channel</span>.<span class="pl-en">basicQos</span>(<span class="pl-c1">1</span>);
+    <span class="pl-s1">channel</span>.<span class="pl-en">exchangeDeclare</span>(<span class="pl-s">"direct_logs"</span>, <span class="pl-s">"direct"</span>);
+    <span class="pl-smi">String</span> <span class="pl-s1">queueName</span> = <span class="pl-s1">channel</span>.<span class="pl-en">queueDeclare</span>().<span class="pl-en">getQueue</span>();
+
+    <span class="pl-k">for</span> (<span class="pl-smi">String</span> <span class="pl-s1">bindingKey</span> : <span class="pl-s1">args</span>) {
+        <span class="pl-s1">channel</span>.<span class="pl-en">queueBind</span>(<span class="pl-s1">queueName</span>, <span class="pl-s">"direct_logs"</span>, <span class="pl-s1">bindingKey</span>);
+    }
+
+    <span class="pl-smi">DeliverCallback</span> <span class="pl-s1">callback</span> = (<span class="pl-s1">tag</span>, <span class="pl-s1">entity</span>) -&gt; {
+        <span class="pl-smi">String</span> <span class="pl-s1">body</span> = <span class="pl-k">new</span> <span class="pl-smi">String</span>(<span class="pl-s1">entity</span>.<span class="pl-en">getBody</span>(), <span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>);
+        <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s">"消费消息："</span> + <span class="pl-s1">body</span>);
+    };
+
+    <span class="pl-s1">channel</span>.<span class="pl-en">basicConsume</span>(<span class="pl-s1">queueName</span>, <span class="pl-c1">true</span>, <span class="pl-s1">callback</span>, <span class="pl-s1">tag</span> -&gt; {});
+}</pre></div>
+</li>
+</ol>
+<h6>topic exchange</h6>
+<blockquote>
+<p>topic exchange对比direct更强大，direct能够关注某一属性的不同值，topic能够关注多个不同属性的多个不同值，topic既可以当direct（binding_key只使用一个word）使用，也可以当fanout使用（binding_key使用#）。</p>
+</blockquote>
+<p><strong>key结构：</strong></p>
+<ul>
+<li>key由word以及dot组成</li>
+<li>*代表一个word</li>
+<li>#代表零个或多个word</li>
+</ul>
+<blockquote>
+<p>routing_key与binding_key匹配时，才会deliver到相应的queue，否则将会discard掉此message</p>
+</blockquote>
+<p><strong>使用示例</strong></p>
+<ol>
+<li>
+<p>producer</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-c">// 与direct_producer一致，只需修改发送message时的routing_key</span></pre></div>
+</li>
+<li>
+<p>consumer</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-c">// 与direct_consumer一致，只需修改queueBinding时的binding_key</span></pre></div>
+</li>
+</ol>
+<h5>RPC</h5>
+<blockquote>
+<p>rabbitmq可以可以做为RPC的中间层</p>
+<p>对于被调用的函数，只需声明一个任务队列，从队列中获取调用请求</p>
+<p>对于主动调用方，需要声明call_back_queue，通过BasicProperties的reply_to设置</p>
+<p>如何区分call_back_message？？设置correlation_id与rquest一一对应</p>
+</blockquote>
+<ol>
+<li>
+<p>被调用函数</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
+    <span class="pl-smi">ConnectionFactory</span> <span class="pl-s1">factory</span> = <span class="pl-k">new</span> <span class="pl-smi">ConnectionFactory</span>();
+    <span class="pl-s1">factory</span>.<span class="pl-en">setHost</span>(<span class="pl-s">"172.24.192.134"</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setPort</span>(<span class="pl-c1">5672</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setUsername</span>(<span class="pl-s">"jasper"</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setPassword</span>(<span class="pl-s">"pubgM666"</span>);
+
+    <span class="pl-smi">Connection</span> <span class="pl-s1">connection</span> = <span class="pl-s1">factory</span>.<span class="pl-en">newConnection</span>();
+    <span class="pl-smi">Channel</span> <span class="pl-s1">channel</span> = <span class="pl-s1">connection</span>.<span class="pl-en">createChannel</span>();
+
+    <span class="pl-s1">channel</span>.<span class="pl-en">queueDeclare</span>(<span class="pl-s">"fib"</span>, <span class="pl-c1">false</span>, <span class="pl-c1">false</span>, <span class="pl-c1">false</span>, <span class="pl-c1">null</span>);
+    <span class="pl-s1">channel</span>.<span class="pl-en">basicQos</span>(<span class="pl-c1">1</span>);
+
+    <span class="pl-smi">DeliverCallback</span> <span class="pl-s1">callback</span> = (<span class="pl-s1">tag</span>, <span class="pl-s1">entity</span>) -&gt; {
+        <span class="pl-smi">String</span> <span class="pl-s1">replyToQueue</span> = <span class="pl-s1">entity</span>.<span class="pl-en">getProperties</span>().<span class="pl-en">getReplyTo</span>();
+        <span class="pl-smi">int</span> <span class="pl-s1">param</span> = <span class="pl-smi">Integer</span>.<span class="pl-en">parseInt</span>(<span class="pl-k">new</span> <span class="pl-smi">String</span>(<span class="pl-s1">entity</span>.<span class="pl-en">getBody</span>(), <span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>));
+        <span class="pl-smi">int</span> <span class="pl-s1">result</span> = <span class="pl-en">fib</span>(<span class="pl-s1">param</span>);
+        <span class="pl-smi">AMQP</span>.<span class="pl-smi">BasicProperties</span> <span class="pl-s1">properties</span> = <span class="pl-k">new</span> <span class="pl-smi">AMQP</span>.<span class="pl-smi">BasicProperties</span>.<span class="pl-smi">Builder</span>()
+            .<span class="pl-en">correlationId</span>(<span class="pl-s1">entity</span>.<span class="pl-en">getProperties</span>().<span class="pl-en">getCorrelationId</span>())
+            .<span class="pl-en">build</span>();
+        <span class="pl-s1">channel</span>.<span class="pl-en">basicPublish</span>(<span class="pl-s">""</span>, <span class="pl-s1">replyToQueue</span>, <span class="pl-s1">properties</span>,
+                             <span class="pl-smi">String</span>.<span class="pl-en">valueOf</span>(<span class="pl-s1">result</span>).<span class="pl-en">getBytes</span>(<span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>));
+    };
+
+    <span class="pl-s1">channel</span>.<span class="pl-en">basicConsume</span>(<span class="pl-s">"fib"</span>, <span class="pl-c1">true</span>, <span class="pl-s1">callback</span>, <span class="pl-s1">tag</span> -&gt; {});
+}
+
+<span class="pl-k">private</span> <span class="pl-k">static</span> <span class="pl-smi">int</span> <span class="pl-en">fib</span>(<span class="pl-smi">int</span> <span class="pl-s1">param</span>) {
+    <span class="pl-k">if</span>(<span class="pl-s1">param</span> &lt;= <span class="pl-c1">1</span>) <span class="pl-k">return</span> <span class="pl-s1">param</span>;
+    <span class="pl-smi">int</span>[] <span class="pl-s1">d</span> = <span class="pl-k">new</span> <span class="pl-smi">int</span>[<span class="pl-s1">param</span> + <span class="pl-c1">1</span>];
+    <span class="pl-s1">d</span>[<span class="pl-c1">1</span>] = <span class="pl-c1">1</span>;
+    <span class="pl-k">for</span>(<span class="pl-smi">int</span> <span class="pl-s1">i</span> = <span class="pl-c1">2</span>;<span class="pl-s1">i</span> &lt; <span class="pl-s1">d</span>.<span class="pl-s1">length</span>;<span class="pl-s1">i</span>++) {
+        <span class="pl-s1">d</span>[<span class="pl-s1">i</span>] = <span class="pl-s1">d</span>[<span class="pl-s1">i</span> - <span class="pl-c1">1</span>] + <span class="pl-s1">d</span>[<span class="pl-s1">i</span> - <span class="pl-c1">2</span>];
+    }
+    <span class="pl-k">return</span> <span class="pl-s1">d</span>[<span class="pl-s1">param</span>];
+}</pre></div>
+</li>
+<li>
+<p>主动调用方</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-smi">void</span> <span class="pl-en">main</span>(<span class="pl-smi">String</span>[] <span class="pl-s1">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span>{
+    <span class="pl-smi">ConnectionFactory</span> <span class="pl-s1">factory</span> = <span class="pl-k">new</span> <span class="pl-smi">ConnectionFactory</span>();
+    <span class="pl-s1">factory</span>.<span class="pl-en">setHost</span>(<span class="pl-s">"172.24.192.134"</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setPort</span>(<span class="pl-c1">5672</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setUsername</span>(<span class="pl-s">"jasper"</span>);
+    <span class="pl-s1">factory</span>.<span class="pl-en">setPassword</span>(<span class="pl-s">"pubgM666"</span>);
+
+    <span class="pl-smi">Connection</span> <span class="pl-s1">connection</span> = <span class="pl-s1">factory</span>.<span class="pl-en">newConnection</span>();
+    <span class="pl-smi">Channel</span> <span class="pl-s1">channel</span> = <span class="pl-s1">connection</span>.<span class="pl-en">createChannel</span>();
+    <span class="pl-s1">channel</span>.<span class="pl-en">basicQos</span>(<span class="pl-c1">1</span>);
+
+    <span class="pl-smi">String</span> <span class="pl-s1">callBackQueue</span> = <span class="pl-s1">channel</span>.<span class="pl-en">queueDeclare</span>().<span class="pl-en">getQueue</span>();
+    <span class="pl-smi">DeliverCallback</span> <span class="pl-s1">callBack</span> = (<span class="pl-s1">tag</span>, <span class="pl-s1">entity</span>) -&gt; {
+        <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s">"fib函数调用结果："</span> +
+                           <span class="pl-k">new</span> <span class="pl-smi">String</span>(<span class="pl-s1">entity</span>.<span class="pl-en">getBody</span>(), <span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>));
+    };
+    <span class="pl-s1">channel</span>.<span class="pl-en">basicConsume</span>(<span class="pl-s1">callBackQueue</span>, <span class="pl-c1">true</span>, <span class="pl-s1">callBack</span>, <span class="pl-s1">tag</span> -&gt; {});
+
+    <span class="pl-smi">AMQP</span>.<span class="pl-smi">BasicProperties</span> <span class="pl-s1">properties</span> = <span class="pl-k">new</span> <span class="pl-smi">AMQP</span>.<span class="pl-smi">BasicProperties</span>.<span class="pl-smi">Builder</span>()
+        .<span class="pl-en">correlationId</span>(<span class="pl-s">""</span>)
+        .<span class="pl-en">replyTo</span>(<span class="pl-s1">callBackQueue</span>)
+        .<span class="pl-en">build</span>();
+    <span class="pl-s1">channel</span>.<span class="pl-en">basicPublish</span>(<span class="pl-s">""</span>, <span class="pl-s">"fib"</span>, <span class="pl-s1">properties</span>, <span class="pl-s1">args</span>[<span class="pl-c1">0</span>].<span class="pl-en">getBytes</span>(<span class="pl-smi">StandardCharsets</span>.<span class="pl-c1">UTF_8</span>));
+}</pre></div>
+</li>
+</ol>
+<h5>publisher confirm</h5>
+<blockquote>
+<p>publisher confirm是channel_level的，只需开启一次</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-s1">channel</span>.<span class="pl-en">confirmSelect</span>();</pre></div>
+</blockquote>
+<p><strong>三种confirm strategy：</strong></p>
+<ol>
+<li>同步发送单条message（性能低）</li>
+<li>同步发送多条message（性能较高）</li>
+<li>异步（the best）最佳性能和资源使用，在出现错误时具有良好的控制力</li>
+</ol>
+<p><strong>异步confirm步骤</strong></p>
+<ol>
+<li>
+<p>提供一种将消息与序列号绑定的方法</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-c">// 通常</span>
+<span class="pl-s1">channel</span>.<span class="pl-en">getNextPublishSeqNo</span>();</pre></div>
+</li>
+<li>
+<p>在channel上注册confirm_listener，包括ack以及nacked两个方法</p>
+<blockquote>
+<p>这两个方法参数一致：int seqNo，boolean multiple</p>
+<p>multiple 为true，则代表单个ack/nacked</p>
+<p>multiple为false，则代表小于等于seq的多个ack/nacked</p>
+</blockquote>
+</li>
+</ol>
+<p><strong>注意：</strong></p>
+<blockquote>
+<p>通常不在nacked异步方法中republish message</p>
+<p>推荐做法：维护一个nacked队列，由定时方法republish</p>
+</blockquote></div>
+<div style="font-size:small;margin-top:8px;float:right;">转载请注明出处</div>
+
+<button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
+<div class="comments" id="comments"></div>
+
+</div>
+    <div id="footer"><div id="footer1">Copyright © <span id="copyrightYear"></span> <a href="https://iamdurant.github.io">jasper</a></div>
+<div id="footer2">
+    <span id="runday"></span><span>Powered by <a href="https://meekdai.com/Gmeek.html" target="_blank">Gmeek</a></span>
+</div>
+
+<script>
+var now=new Date();
+document.getElementById("copyrightYear").innerHTML=now.getFullYear();
+
+if("06/19/2024"!=""){
+    var startSite=new Date("06/19/2024");
+    var diff=now.getTime()-startSite.getTime();
+    var diffDay=Math.floor(diff/(1000*60*60*24));
+    document.getElementById("runday").innerHTML="网站运行"+diffDay+"天"+" • ";
+}
+</script></div>
+</body>
+<script>
+var IconList={'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'sync': 'M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z', 'copy': 'M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z', 'check': 'M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z'};
+var utterancesLoad=0;
+
+let themeSettings={
+    "dark": ["dark","moon","#00f0ff","dark-blue"],
+    "light": ["light","sun","#ff5000","github-light"],
+    "auto": ["auto","sync","","preferred-color-scheme"]
+};
+function changeTheme(mode, icon, color, utheme){
+    document.documentElement.setAttribute("data-color-mode",mode);
+    document.getElementById("themeSwitch").setAttribute("d",value=IconList[icon]);
+    document.getElementById("themeSwitch").parentNode.style.color=color;
+    if(utterancesLoad==1){utterancesTheme(utheme);}
+}
+function modeSwitch(){
+    let currentMode=document.documentElement.getAttribute('data-color-mode');
+    let newMode = currentMode === "light" ? "dark" : currentMode === "dark" ? "auto" : "light";
+    localStorage.setItem("meek_theme", newMode);
+    if(themeSettings[newMode]){
+        changeTheme(...themeSettings[newMode]);
+    }
+}
+function utterancesTheme(theme){
+    const message={type:'set-theme',theme: theme};
+    const iframe=document.getElementsByClassName('utterances-frame')[0];
+    iframe.contentWindow.postMessage(message,'https://utteranc.es');
+}
+if(themeSettings[theme]){changeTheme(...themeSettings[theme]);}
+console.log("\n %c Gmeek last https://github.com/Meekdai/Gmeek \n","padding:5px 0;background:#02d81d;color:#fff");
+</script>
+
+<script>
+document.getElementById("pathHome").setAttribute("d",IconList["home"]);
+document.getElementById("pathIssue").setAttribute("d",IconList["github"]);
+
+
+
+function openComments(){
+    cm=document.getElementById("comments");
+    cmButton=document.getElementById("cmButton");
+    cmButton.innerHTML="loading";
+    span=document.createElement("span");
+    span.setAttribute("class","AnimatedEllipsis");
+    cmButton.appendChild(span);
+
+    script=document.createElement("script");
+    script.setAttribute("src","https://utteranc.es/client.js");
+    script.setAttribute("repo","iamdurant/iamdurant.github.io");
+    script.setAttribute("issue-term","title");
+    
+    if(localStorage.getItem("meek_theme")=="dark"){script.setAttribute("theme","dark-blue");}
+    else if(localStorage.getItem("meek_theme")=="light") {script.setAttribute("theme","github-light");}
+    else{script.setAttribute("theme","preferred-color-scheme");}
+    
+    script.setAttribute("crossorigin","anonymous");
+    script.setAttribute("async","");
+    cm.appendChild(script);
+
+    int=self.setInterval("iFrameLoading()",200);
+}
+
+function iFrameLoading(){
+    var utterances=document.getElementsByClassName('utterances');
+    if(utterances.length==1){
+        if(utterances[0].style.height!=""){
+            utterancesLoad=1;
+            int=window.clearInterval(int);
+            document.getElementById("cmButton").style.display="none";
+            console.log("utterances Load OK");
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const createClipboardHTML = (codeContent, additionalClasses = '') => `
+        <pre class="notranslate"><code class="notranslate">${codeContent}</code></pre>
+        <div class="clipboard-container position-absolute right-0 top-0 ${additionalClasses}">
+            <clipboard-copy class="ClipboardButton btn m-2 p-0" role="button" style="display: inherit;">
+                <svg height="16" width="16" class="octicon octicon-copy m-2"><path d="${IconList["copy"]}"></path></svg>
+                <svg height="16" width="16" class="octicon octicon-check color-fg-success m-2 d-none"><path d="${IconList["check"]}"></path></svg>
+            </clipboard-copy>
+            <div class="copy-feedback">Copied!</div>
+        </div>
+    `;
+
+    const handleCodeElements = (selector = '') => {
+        document.querySelectorAll(selector).forEach(codeElement => {
+            const codeContent = codeElement.innerHTML;
+            const newStructure = document.createElement('div');
+            newStructure.className = 'snippet-clipboard-content position-relative overflow-auto';
+            newStructure.innerHTML = createClipboardHTML(codeContent);
+
+            const parentElement = codeElement.parentElement;
+            if (selector.includes('highlight')) {
+                parentElement.insertBefore(newStructure, codeElement.nextSibling);
+                parentElement.removeChild(codeElement);
+            } else {
+                parentElement.parentElement.replaceChild(newStructure, parentElement);
+            }
+        });
+    };
+
+    handleCodeElements('pre.notranslate > code.notranslate');
+    handleCodeElements('div.highlight > pre.notranslate');
+
+    let currentFeedback = null;
+    document.querySelectorAll('clipboard-copy').forEach(copyButton => {
+        copyButton.addEventListener('click', () => {
+            const codeContent = copyButton.closest('.snippet-clipboard-content').innerText;
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = codeContent;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextArea);
+
+            const copyIcon = copyButton.querySelector('.octicon-copy');
+            const checkIcon = copyButton.querySelector('.octicon-check');
+            const copyFeedback = copyButton.nextElementSibling;
+
+            if (currentFeedback && currentFeedback !== copyFeedback) {currentFeedback.style.display = 'none';}
+            currentFeedback = copyFeedback;
+
+            copyIcon.classList.add('d-none');
+            checkIcon.classList.remove('d-none');
+            copyFeedback.style.display = 'block';
+            copyButton.style.borderColor = 'var(--color-success-fg)';
+
+            setTimeout(() => {
+                copyIcon.classList.remove('d-none');
+                checkIcon.classList.add('d-none');
+                copyFeedback.style.display = 'none';
+                copyButton.style.borderColor = '';
+            }, 2000);
+        });
+    });
+});
+
+</script>
+
+
+</html>

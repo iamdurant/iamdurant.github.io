@@ -1,5 +1,187 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>jasper</title><link>https://iamdurant.github.io</link><description>make programming great again</description><copyright>jasper</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1730782842.png?x-oss-process=image%2Fformat%2Cwebp</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Sun, 23 Feb 2025 17:31:12 +0000</lastBuildDate><managingEditor>jasper</managingEditor><ttl>60</ttl><webMaster>jasper</webMaster><item><title>tarjan算法</title><link>https://iamdurant.github.io/post/tarjan-suan-fa.html</link><description>#### tarjan算法&#13;
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>jasper</title><link>https://iamdurant.github.io</link><description>make programming great again</description><copyright>jasper</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1730782842.png?x-oss-process=image%2Fformat%2Cwebp</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Tue, 04 Mar 2025 22:10:34 +0000</lastBuildDate><managingEditor>jasper</managingEditor><ttl>60</ttl><webMaster>jasper</webMaster><item><title>rabbitmq_java</title><link>https://iamdurant.github.io/post/rabbitmq_java.html</link><description>##### rabbitmq安装教程
+
+**环境：ubuntu**
+
+1. 直接使用[官网](https://www.rabbitmq.com/docs/install-debian#apt-quick-start-cloudsmith)提供的一键脚本，会安装较新的erlang以及rabbit-server
+
+2. 启用插件管理，开启web端
+
+   ```shell
+   rabbitmq-plugins enable rabbitmq_management
+   ```
+
+3. 默认web端只支持localhost访问，额外配置：
+
+   ```shell
+   # 添加用户
+   rabbitmqctl add_user jasper pubgM666
+   # 设置为管理员
+   rabbitmqctl set_user_tags jasper administrator
+   # 授予权限
+   rabbitmqctl set_permissions -p / jasper '.*' '.*' '.*'
+   # restart
+   systemctl restart rabbitmq-server
+   ```
+
+
+
+##### tabbitmq简单使用
+
+###### 依赖
+
+```xml
+&lt;dependency&gt;
+    &lt;groupId&gt;com.rabbitmq&lt;/groupId&gt;
+    &lt;artifactId&gt;amqp-client&lt;/artifactId&gt;
+    &lt;version&gt;5.19.0&lt;/version&gt;
+&lt;/dependency&gt;
+
+&lt;!-- slf4j日志门面 --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.slf4j&lt;/groupId&gt;
+    &lt;artifactId&gt;slf4j-api&lt;/artifactId&gt;
+    &lt;version&gt;2.0.11&lt;/version&gt;
+&lt;/dependency&gt;
+
+&lt;!-- slf4j内部实现 --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.slf4j&lt;/groupId&gt;
+    &lt;artifactId&gt;slf4j-simple&lt;/artifactId&gt;
+    &lt;version&gt;2.0.11&lt;/version&gt;
+&lt;/dependency&gt;
+```
+
+
+
+###### hello world
+
+1. producer
+
+   ```java
+   package wwb.rabbitmq.producer;
+   
+   import com.rabbitmq.client.Channel;
+   import com.rabbitmq.client.Connection;
+   import com.rabbitmq.client.ConnectionFactory;
+   
+   import java.nio.charset.StandardCharsets;
+   
+   public class HelloProducer {
+       public static void main(String[] args) {
+           ConnectionFactory factory = new ConnectionFactory();
+           factory.setHost('172.24.192.134');
+           factory.setPort(5672);
+           factory.setUsername('jasper');
+           factory.setPassword('pubgM666');
+           factory.setVirtualHost('/');
+   
+           try (Connection connection = factory.newConnection();
+                Channel channel = connection.createChannel()) {
+               channel.queueDeclare('hello', false, false, false, null);
+               channel.basicPublish('', 'hello', null, '你好'.getBytes(StandardCharsets.UTF_8));
+           } catch (Exception e) {
+   
+           }
+       }
+   }
+   ```
+
+   
+
+2. consumer
+
+   ```java
+   package wwb.rabbitmq.consumer;
+   
+   import com.rabbitmq.client.Channel;
+   import com.rabbitmq.client.Connection;
+   import com.rabbitmq.client.ConnectionFactory;
+   import com.rabbitmq.client.DeliverCallback;
+   
+   public class HelloConsumer {
+       public static void main(String[] args) throws Exception{
+           ConnectionFactory factory = new ConnectionFactory();
+           factory.setHost('172.24.192.134');
+           factory.setPort(5672);
+           factory.setUsername('jasper');
+           factory.setPassword('pubgM666');
+           factory.setVirtualHost('/');
+   
+           Connection connection = factory.newConnection();
+           Channel channel = connection.createChannel();
+   
+           channel.queueDeclare('hello', false, false, false, null);
+           DeliverCallback deliverCallback = (consumerTag, mess) -&gt; {
+               String message = new String(mess.getBody(), 'UTF-8');
+               System.out.println(message);
+           };
+           channel.basicConsume('hello', true, deliverCallback, tag -&gt; {});
+       }
+   }
+   ```
+
+###### acknowlegement
+
+```java
+public static void main(String[] args) throws Exception{
+    ConnectionFactory factory = new ConnectionFactory();
+    factory.setHost('172.24.192.134');
+    factory.setPort(5672);
+    factory.setUsername('jasper');
+    factory.setPassword('pubgM666');
+
+    Connection connection = factory.newConnection();
+    Channel channel = connection.createChannel();
+
+    channel.queueDeclare('workqueues', false, false, false, null);
+    // 设置一次只接受一个未消费消息
+    channel.basicQos(1); 
+
+    Random random = new Random();
+    StringBuilder sb = new StringBuilder();
+    for(int i = 0;i &lt; 4;i++) {
+        sb.append((char) (random.nextInt(26) + 97));
+    }
+    String workerName = sb.toString();
+
+    DeliverCallback callback = (tag, entity) -&gt; {
+        String body = new String(entity.getBody(), StandardCharsets.UTF_8);
+        for(int i = 0;i &lt; body.length();++i) {
+            if(body.charAt(i) == '.') {
+                try {
+                    TimeUnit.MILLISECONDS.sleep(300);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        // 手动返回ack
+        channel.basicAck(entity.getEnvelope().getDeliveryTag(), false);
+        System.out.println(workerName + '消费了：' + body);
+    };
+
+    channel.basicConsume('workqueues', false, callback, tag -&gt; {});
+}
+```
+
+###### message durability
+
+如何确保消息不会丢失：
+
+1. 队列持久化，声明队列时，第二个参数
+
+   ```java
+   channel.queueDeclare('workqueues', true, false, false, null);
+   ```
+
+2. 消息持久化，发送消息时声明
+
+   ```java
+   channel.basicPublish('', 'workqueues', MessageProperties.PERSISTENT_TEXT_PLAIN, body.getBytes(StandardCharsets.UTF_8));
+   ```
+
+如此过后消息可靠性大幅提升，已经可以满足大部分情况，但是还是存在一个小的窗口导致消息丢失，因为rabbitmq收到消息时，并不会保证将每条消息都刷盘，而是存在缓冲区。</description><guid isPermaLink="true">https://iamdurant.github.io/post/rabbitmq_java.html</guid><pubDate>Tue, 04 Mar 2025 22:10:07 +0000</pubDate></item><item><title>tarjan算法</title><link>https://iamdurant.github.io/post/tarjan-suan-fa.html</link><description>#### tarjan算法&#13;
 &#13;
 [tarjan学习](https://oi-wiki.org/graph/scc/)&#13;
 &#13;
