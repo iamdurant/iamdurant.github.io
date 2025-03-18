@@ -1,5 +1,49 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>jasper</title><link>https://iamdurant.github.io</link><description>make programming great again</description><copyright>jasper</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1730782842.png?x-oss-process=image%2Fformat%2Cwebp</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Thu, 06 Mar 2025 05:02:40 +0000</lastBuildDate><managingEditor>jasper</managingEditor><ttl>60</ttl><webMaster>jasper</webMaster><item><title>rabbitmq_spring_amqp</title><link>https://iamdurant.github.io/post/rabbitmq_spring_amqp.html</link><description>##### 依赖
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>jasper</title><link>https://iamdurant.github.io</link><description>make programming great again</description><copyright>jasper</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1730782842.png?x-oss-process=image%2Fformat%2Cwebp</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Tue, 18 Mar 2025 07:30:09 +0000</lastBuildDate><managingEditor>jasper</managingEditor><ttl>60</ttl><webMaster>jasper</webMaster><item><title>素数判定</title><link>https://iamdurant.github.io/post/su-shu-pan-ding.html</link><description>**四大判定法**
+![Image](https://github.com/user-attachments/assets/e2849b70-739e-46b1-90df-16eb1d9dfecd)
+
+1. 试除法
+
+   ```java
+   boolean prime(int v) {
+       if(v &lt; 2) return false;
+       if(v == 2) return true;
+       if(v % 2 == 0) return false;
+       for(int i = 3;i * i &lt;= v;i += 2) {
+           if(v % i == 0) return false;
+       }
+       return true;
+   }
+   ```
+
+2. 埃氏筛
+
+   **[详解](https://zh.wikipedia.org/wiki/%E5%9F%83%E6%8B%89%E6%89%98%E6%96%AF%E7%89%B9%E5%B0%BC%E7%AD%9B%E6%B3%95)**
+
+   ```java
+   /***
+    * 
+    * @param n 求[2 - n]范围内的素数
+    * @return boolean数组，false则为素数
+    */
+   boolean[] eratosthenes(int n) {
+       int g = (int) Math.sqrt(n);
+       boolean[] b = new boolean[n + 1];
+       for(int i = 2;i &lt;= n;++i) {
+           if(!b[i]) {
+               if(i &gt; g) break;
+               for(int k = i * i;k &lt;= n;k += i) {
+                   b[k] = true;
+               }
+           }
+       }
+       return b;
+   }
+   ```
+
+3. 欧拉筛
+
+4. Miller-Rabin。</description><guid isPermaLink="true">https://iamdurant.github.io/post/su-shu-pan-ding.html</guid><pubDate>Tue, 18 Mar 2025 07:29:41 +0000</pubDate></item><item><title>rabbitmq_spring_amqp</title><link>https://iamdurant.github.io/post/rabbitmq_spring_amqp.html</link><description>##### 依赖
 
 ```xml
 &lt;dependency&gt;
