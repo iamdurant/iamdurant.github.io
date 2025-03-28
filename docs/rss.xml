@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>jasper</title><link>https://iamdurant.github.io</link><description>make programming great again</description><copyright>jasper</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1730782842.png?x-oss-process=image%2Fformat%2Cwebp</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Tue, 18 Mar 2025 07:30:09 +0000</lastBuildDate><managingEditor>jasper</managingEditor><ttl>60</ttl><webMaster>jasper</webMaster><item><title>素数判定</title><link>https://iamdurant.github.io/post/su-shu-pan-ding.html</link><description>**四大判定法**
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>jasper</title><link>https://iamdurant.github.io</link><description>make programming great again</description><copyright>jasper</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1730782842.png?x-oss-process=image%2Fformat%2Cwebp</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Fri, 28 Mar 2025 13:48:14 +0000</lastBuildDate><managingEditor>jasper</managingEditor><ttl>60</ttl><webMaster>jasper</webMaster><item><title>素数判定</title><link>https://iamdurant.github.io/post/su-shu-pan-ding.html</link><description>**四大判定法**
 ![Image](https://github.com/user-attachments/assets/e2849b70-739e-46b1-90df-16eb1d9dfecd)
 
 1. 试除法
@@ -1923,7 +1923,84 @@ private int fastPow(int val, int p) {&#13;
 &#13;
         return result;&#13;
     }&#13;
-```。</description><guid isPermaLink="true">https://iamdurant.github.io/post/kuai-su-mi.html</guid><pubDate>Tue, 10 Sep 2024 16:15:51 +0000</pubDate></item><item><title>设计模式</title><link>https://iamdurant.github.io/post/she-ji-mo-shi.html</link><guid isPermaLink="true">https://iamdurant.github.io/post/she-ji-mo-shi.html</guid><pubDate>Sat, 13 Jul 2024 16:13:53 +0000</pubDate></item><item><title>dubbo</title><link>https://iamdurant.github.io/post/dubbo.html</link><guid isPermaLink="true">https://iamdurant.github.io/post/dubbo.html</guid><pubDate>Fri, 12 Jul 2024 04:02:50 +0000</pubDate></item><item><title>Mysql</title><link>https://iamdurant.github.io/post/Mysql.html</link><description>**行记录格式**&#13;
+```。</description><guid isPermaLink="true">https://iamdurant.github.io/post/kuai-su-mi.html</guid><pubDate>Tue, 10 Sep 2024 16:15:51 +0000</pubDate></item><item><title>设计模式</title><link>https://iamdurant.github.io/post/she-ji-mo-shi.html</link><description>#### 创建型模式
+
+##### 单例
+
+**常见的单例：**
+
+- `RunTime`
+
+- Spring中的`ApplicationContext`
+
+```java
+public class SingleTon {
+    private static volatile SingleTon single;
+
+    private SingleTon() {
+
+    }
+
+    public static SingleTon getInstance() {
+        if(single == null) {
+            synchronized(SingleTon.class) {
+                if(single == null) single = new SingleTon();
+            }
+        }
+
+        return single;
+    }
+}
+```
+
+
+
+##### 简单工厂
+
+**主要角色：**
+
+- 抽象产品
+- 具体产品
+- 简单工厂
+
+&gt; 所有产品都交由简单工厂创建，若需新增产品，则需要改动简单工厂的代码
+
+```java
+// 抽象产品
+public interface Phone {
+}
+
+// 具体产品
+public class XiaoMi implements Phone{
+}
+
+// 具体产品
+public class HuaWei implements Phone{
+}
+
+// 简单工厂
+public class PhoneFactory {
+    public static Phone createPhone(String type) {
+        if(type == null) return null;
+        if(type.equals('XiaoMi')) return new XiaoMi();
+        else if(type.equals('HuaWei')) return new HuaWei();
+        return null;
+    }
+}
+```
+
+
+
+##### 工厂方法
+
+**主要角色：**
+
+- 抽象产品
+- 具体产品
+- 抽象工厂
+- 具体工厂
+
+&gt; 对于简单工厂，新增产品需要改动代码。</description><guid isPermaLink="true">https://iamdurant.github.io/post/she-ji-mo-shi.html</guid><pubDate>Sat, 13 Jul 2024 16:13:53 +0000</pubDate></item><item><title>dubbo</title><link>https://iamdurant.github.io/post/dubbo.html</link><guid isPermaLink="true">https://iamdurant.github.io/post/dubbo.html</guid><pubDate>Fri, 12 Jul 2024 04:02:50 +0000</pubDate></item><item><title>Mysql</title><link>https://iamdurant.github.io/post/Mysql.html</link><description>**行记录格式**&#13;
 - antelope&#13;
   - redundant&#13;
   - compact&#13;
