@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html data-color-mode="light" data-dark-theme="dark" data-light-theme="light" lang="zh-CN">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href='https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/Primer/21.0.7/primer.css' rel='stylesheet' />
+    
+    <link rel="icon" href="https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1730782842.png?x-oss-process=image%2Fformat%2Cwebp"><script>
+        let theme = localStorage.getItem("meek_theme") || "light";
+        document.documentElement.setAttribute("data-color-mode", theme);
+    </script>
+<meta name="description" content="##### 分库分表
+
+- 垂直分表
+
+  > 将频繁访问的属性与访问率较低的属性,拆分到两张表
+
+- 垂直分库
+
+  > 将不相关的业务实体,拆分到两个数据库
+
+- 水平分库
+
+  > 将表数据划分到不同的数据库
+
+- 水平分表
+
+  > 将表水平拆分成多个表
+
+
+
+#####  sharding-jdbc-sql执行过程
+
+1. 解析
+2. 改写
+3. 路由
+4. 执行
+5. 归并
+
+
+
+##### 水平分表demo
+
+**水平分表**
+
+`sql`准备,创建两张表: `t_order_1`,`t_order_2`
+
+```sql
+create table t_order_2(
+	`id` bigint primary key comment '订单id',
+    `product_id` bigint not null comment '商品id',
+    `amount` int not null comment '购买数量',
+    `buyer_id` bigint not null comment '购买者id',
+    `create_date` datetime not null comment '下单时间',
+    `status` int not null default 0 comment '订单状态 0: 未支付, 1: 已支付, 2: 超时, 3: 取消, 4: 其他',
+    `pay_time` datetime null comment '支付时间'
+) engine=innodb default charset=utf8mb4 comment='订单表2';
+```
+
+`maven`依赖
+
+```xml
+<dependencies>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+        <version>2.7.15</version>
+        <exclusions>
+            <exclusion>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+            </exclusion>
+            <exclusion>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-logging</artifactId>
+            </exclusion>
+        </exclusions>
+    </dependency>
+
+    <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <version>1.18.34</version>
+    </dependency>
+
+    <dependency>
+        <groupId>mysql</groupId>
+        <artifactId>mysql-connector-java</artifactId>
+        <version>8.0.30</version>
+    </dependency>
+
+    <dependency>
+        <groupId>com.baomidou</groupId>
+        <artifactId>mybatis-plus-boot-starter</artifactId>
+        <version>3.5.5</version>
+        <exclusions>
+            <exclusion>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+            </exclusion>
+        </exclusions>
+    </dependency>
+
+    <dependency>
+        <groupId>com.github.xiaoymin</groupId>
+        <artifactId>knife4j-openapi2-spring-boot-starter</artifactId>
+        <version>4.2.0</version>
+    </dependency>
+
+    <dependency>
+        <groupId>org.apache.shardingsphere</groupId>
+        <artifactId>sharding-jdbc-spring-boot-starter</artifactId>
+        <version>4.1.1</version>
+    </dependency>
+
+
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-logging</artifactId>
+        <version>2.7.15</version>
+    </dependency>
+</dependencies>
+
+<properties>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+</properties>
+```
+
+`yaml`配置
+
+```yaml
+server:
+  port: 8888
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+
+spring:
+  # sharding-jdbc 配置
+  shardingsphere:
+    datasource:
+      names: m1
+      m1:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: jdbc:mysql://localhost:3306/sharding_jdbc_demo?serverTimezone=UTC
+        username: root
+        password: pubgM666
+    sharding:
+      tables:
+        t_order:
+          actual-data-nodes: m1.t_order_$->{1..2}
+          table-strategy:
+            inline:
+              sharding-column: id
+              algorithm-expression: t_order_$->{id % 2 + 1}
+          key-generator:
+            column: id
+            type: SNOWFLAKE
+            props:
+              worker:
+                id: 100
+              max:
+                tolerate:
+                  time:
+                    difference:
+                      milliseconds: 20
+```
+
+**细节**
+
+1. 雪花算法生成的字段,在insert时,需要自定义`sql`,将次字段从`sql`插入字段中去除:
+
+   > 比如:
+   >
+   > 定义id字段为雪花算法自动生成,则`insert sql`为:
+   >
+   > ```java
+   > @Insert('insert into t_order(product_id, amount, buyer_id, create_date, status, pay_time) values(#{productId}, #{amount}, #{buyerId}, #{createDate}, #{status}, #{payTime})')
+   >  int insert(TOrder tOrder);
+   > ```
+
+2. 依赖不能导错,`sharding-jdbc`依赖:
+
+   ```xml
+   <dependency>
+       <groupId>org.apache.shardingsphere</groupId>
+       <artifactId>sharding-jdbc-spring-boot-starter</artifactId>
+       <version>4.1.1</version>
+   </dependency>
+   ```
+
+
+###### 碰到的bug
+
+1. `sharding-jdbc-spring-boot-starter`,无法解析`LocalDateTime`以及`LocalDate`
+
+   > 修复: 
+   >
+   > - 依赖升级
+   >
+   > ```xml
+   > <dependency>
+   >     <groupId>org.apache.shardingsphere</groupId>
+   >     <artifactId>shardingsphere-jdbc-core-spring-boot-starter</artifactId>
+   >     <version>5.2.1</version>
+   >     <exclusions>
+   >         <exclusion>
+   >             <groupId>org.yaml</groupId>
+   >             <artifactId>snakeyaml</artifactId>
+   >         </exclusion>
+   >     </exclusions>
+   > </dependency>
+   > ```
+   >
+   > - `5.x.x`版本yml配置不同,更改为:
+   >
+   > ```yaml
+   > spring:
+   >   shardingsphere:
+   >     datasource:
+   >       names: m1
+   >       m1:
+   >         type: com.zaxxer.hikari.HikariDataSource
+   >         driver-class-name: com.mysql.cj.jdbc.Driver
+   >         jdbc-url: jdbc:mysql://localhost:3306/sharding_jdbc_demo?serverTimezone=UTC
+   >         username: root
+   >         password: pubgM666
+   > 
+   >     rules:
+   >       sharding:
+   >         tables:
+   >           t_order:
+   >             actual-data-nodes: m1.t_order_$->{1..2}
+   >             table-strategy:
+   >               standard:
+   >                 sharding-column: id
+   >                 sharding-algorithm-name: t_order_inline
+   >             key-generate-strategy:
+   >               column: id
+   >               key-generator-name: snowflake
+   > 
+   >         sharding-algorithms:
+   >           t_order_inline:
+   >             type: INLINE
+   >             props:
+   >               algorithm-expression: t_order_$->{id % 2 + 1}
+   > 
+   >         key-generators:
+   >           snowflake:
+   >             type: SNOWFLAKE
+   >             props:
+   >               worker-id: 100
+   >               max-tolerate-time-difference-milliseconds: 20
+   > 
+   >     props:
+   >       sql-show: true   # 开启SQL打印，方便调试
+   > ```
+
+2. `mybatis-plus`与`sharding-jdbc`的不兼容
+
+   >  解决: `sql`都使用`mapper`方式定义,不使用`mybatis-plus`
+
+
+#####  水平分库demo
+
+**`yml`配置:**
+
+```yaml
+spring:
+  shardingsphere:
+    datasource:
+      names: m1, m2
+      m1:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: jdbc:mysql://localhost:3306/sharding_jdbc_demo?serverTimezone=UTC
+        username: root
+        password: pubgM666
+      m2:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: jdbc:mysql://localhost:3306/sharding_jdbc_demo2?serverTimezone=UTC
+        username: root
+        password: pubgM666
+
+    rules:
+      sharding:
+        tables:
+          t_order:
+            actual-data-nodes: m$->{1..2}.t_order_$->{1..2}
+            database-strategy:
+              standard:
+                sharding-column: product_id
+                sharding-algorithm-name: t_order_database_inline
+            table-strategy:
+              standard:
+                sharding-column: id
+                sharding-algorithm-name: t_order_inline
+            key-generate-strategy:
+              column: id
+              key-generator-name: snowflake
+
+        sharding-algorithms:
+          t_order_inline:
+            type: INLINE
+            props:
+              algorithm-expression: t_order_$->{id % 2 + 1}
+          t_order_database_inline:
+            type: INLINE
+            props:
+              algorithm-expression: m$->{product_id % 2 + 1}
+
+        key-generators:
+          snowflake:
+            type: SNOWFLAKE
+            props:
+              worker-id: 100
+              max-tolerate-time-difference-milliseconds: 20
+
+    props:
+      sql-show: true   # 开启SQL打印，方便调试
+```
+
+
+
+##### 垂直分库
+
+**数据库准备**
+
+```sql
+create database sharding_jdbc_userdb;
+
+create table `user`(
+	`id` bigint auto_increment primary key comment 'id,主键',
+    `username` varchar(16) not null comment '用户名',
+    `encoded_password` varchar(256) not null comment '加密后的密码',
+    `salt` char(16) not null comment '随机盐',
+    `create_date` datetime not null comment '创建时间'
+)engine=innodb default charset=utf8mb4 comment='用户表';
+```
+
+
+
+##### 广播表
+
+若垂直分库后,部分库都需要对某个表join,并且此表数据读u多写少,可以将其作为为公告表
+
+```sql
+create table common(
+	`id` bigint primary key auto_increment comment '主键',
+    `name` varchar(32) null comment '名字'
+)engine=innodb default charset=utf8mb4 comment='公共表';
+```
+
+**`yml`配置:**
+
+```yaml
+spring:
+  shardingsphere:
+    rules:
+      sharding:
+        # 广播表
+        broadcast-tables:
+          common
+```
+
+##### sharding-jdbc读写分离
+
+> `sharding-jdbc`根据`sql`语义,将写操作路由至`master`,将读操作路由至`slave`.提供透明化读写操作,像使用一个数据库一样使用主从数据库集群.
+>
+> ![image-20250429231159360](http://192.168.1.101:9000/kijjqvbsoduu/imgs/image-20250429231159431.png)
+
+`yaml`配置
+
+```yaml
+    rules:
+      readwrite-splitting:
+        data-sources:
+          m0_group:
+            static-strategy:
+              write-data-source-name: m0
+              read-data-source-names:
+                - s0
+            load-balancer-name: round_robin
+        load-balancers:
+          round_robin:
+            type: ROUND_ROBIN
+      sharding:
+        # 广播表
+        broadcast-tables:
+          common
+        tables:
+          user:
+            actual-data-nodes: m0_group.user
+```
+
+##### 实践
+
+**描述:**
+
+以商品为例,进行实践.
+
+###### 数据库设计
+
+>  *entity:*
+>
+>  - 商品
+>  - 店铺
+>  - 地理区域
+>
+>  *垂直分库:*
+>
+>  将商品以及店铺划分到product_db,store_db
+>
+>  *垂直分表:*
+>
+>  将商品信息划分为product_info,product_desc
+>
+>  *广播表:*
+>
+>  region
+>
+>  *水平分库:*
+>
+>  将product_db根据store_id分库
+>
+>  *水平分表:*
+>
+>  将product_info根据product_id分表
+
+###### sql准备
+
+product_info
+
+```sql
+create database product_db_1;
+create database product_db_2;
+
+create table product_info_1(
+	`id` bigint primary key comment '商品id',
+    `store_id` bigint not null comment '所属店铺id',
+    `name` varchar(64) not null comment '商品名称',
+    `specification` varchar(8) not null comment '规格',
+    `source_place` varchar(16) null comment '产地',
+    `price` decimal not null comment '价格',
+    `pic_url` varchar(200) not null comment '图片url'
+) engine=innodb default charset=utf8mb4 comment='商品信息表';
+```
+
+product_desc
+
+```sql
+create table product_desc_1(
+	`id` bigint auto_increment primary key comment 'id',
+    `product_id` bigint not null comment '商品id',
+    `store_id` bigint not null comment '店铺id',
+    `desc` text not null comment '商品描述'
+) engine=innodb default charset=utf8mb4 comment '商品描述表';
+```
+
+store
+
+```sql
+create databse store_db;
+
+create table store(
+	`id` bigint primary key auto_increment comment '店铺id',
+    `name` varchar(32) not null comment '店铺名称',
+    `score` float null default 0 comment '店铺评分',
+    `source_place_id` bigint not null comment '店铺所在地'
+) engine=innodb default charset=utf8mb4 comment '店铺信息表';
+```
+
+region
+
+```sql
+create table region(
+	`id` bigint primary key auto_increment comment 'id',
+    `code` bigint not null comment '地域编码',
+    `name` varchar(32) not null comment '地理区域名称',
+    `level` int not null comment '级别,省:1 市:2 县:3 镇:4',
+    `parent` bigint null comment '上级地理区域'
+) engine=innodb default charset=utf8mb4 comment '地域信息表';
+```
+
+。">
+<meta property="og:title" content="sharding-jdbc分库分表">
+<meta property="og:description" content="##### 分库分表
+
+- 垂直分表
+
+  > 将频繁访问的属性与访问率较低的属性,拆分到两张表
+
+- 垂直分库
+
+  > 将不相关的业务实体,拆分到两个数据库
+
+- 水平分库
+
+  > 将表数据划分到不同的数据库
+
+- 水平分表
+
+  > 将表水平拆分成多个表
+
+
+
+#####  sharding-jdbc-sql执行过程
+
+1. 解析
+2. 改写
+3. 路由
+4. 执行
+5. 归并
+
+
+
+##### 水平分表demo
+
+**水平分表**
+
+`sql`准备,创建两张表: `t_order_1`,`t_order_2`
+
+```sql
+create table t_order_2(
+	`id` bigint primary key comment '订单id',
+    `product_id` bigint not null comment '商品id',
+    `amount` int not null comment '购买数量',
+    `buyer_id` bigint not null comment '购买者id',
+    `create_date` datetime not null comment '下单时间',
+    `status` int not null default 0 comment '订单状态 0: 未支付, 1: 已支付, 2: 超时, 3: 取消, 4: 其他',
+    `pay_time` datetime null comment '支付时间'
+) engine=innodb default charset=utf8mb4 comment='订单表2';
+```
+
+`maven`依赖
+
+```xml
+<dependencies>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+        <version>2.7.15</version>
+        <exclusions>
+            <exclusion>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+            </exclusion>
+            <exclusion>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-logging</artifactId>
+            </exclusion>
+        </exclusions>
+    </dependency>
+
+    <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <version>1.18.34</version>
+    </dependency>
+
+    <dependency>
+        <groupId>mysql</groupId>
+        <artifactId>mysql-connector-java</artifactId>
+        <version>8.0.30</version>
+    </dependency>
+
+    <dependency>
+        <groupId>com.baomidou</groupId>
+        <artifactId>mybatis-plus-boot-starter</artifactId>
+        <version>3.5.5</version>
+        <exclusions>
+            <exclusion>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+            </exclusion>
+        </exclusions>
+    </dependency>
+
+    <dependency>
+        <groupId>com.github.xiaoymin</groupId>
+        <artifactId>knife4j-openapi2-spring-boot-starter</artifactId>
+        <version>4.2.0</version>
+    </dependency>
+
+    <dependency>
+        <groupId>org.apache.shardingsphere</groupId>
+        <artifactId>sharding-jdbc-spring-boot-starter</artifactId>
+        <version>4.1.1</version>
+    </dependency>
+
+
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-logging</artifactId>
+        <version>2.7.15</version>
+    </dependency>
+</dependencies>
+
+<properties>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+</properties>
+```
+
+`yaml`配置
+
+```yaml
+server:
+  port: 8888
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+
+spring:
+  # sharding-jdbc 配置
+  shardingsphere:
+    datasource:
+      names: m1
+      m1:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: jdbc:mysql://localhost:3306/sharding_jdbc_demo?serverTimezone=UTC
+        username: root
+        password: pubgM666
+    sharding:
+      tables:
+        t_order:
+          actual-data-nodes: m1.t_order_$->{1..2}
+          table-strategy:
+            inline:
+              sharding-column: id
+              algorithm-expression: t_order_$->{id % 2 + 1}
+          key-generator:
+            column: id
+            type: SNOWFLAKE
+            props:
+              worker:
+                id: 100
+              max:
+                tolerate:
+                  time:
+                    difference:
+                      milliseconds: 20
+```
+
+**细节**
+
+1. 雪花算法生成的字段,在insert时,需要自定义`sql`,将次字段从`sql`插入字段中去除:
+
+   > 比如:
+   >
+   > 定义id字段为雪花算法自动生成,则`insert sql`为:
+   >
+   > ```java
+   > @Insert('insert into t_order(product_id, amount, buyer_id, create_date, status, pay_time) values(#{productId}, #{amount}, #{buyerId}, #{createDate}, #{status}, #{payTime})')
+   >  int insert(TOrder tOrder);
+   > ```
+
+2. 依赖不能导错,`sharding-jdbc`依赖:
+
+   ```xml
+   <dependency>
+       <groupId>org.apache.shardingsphere</groupId>
+       <artifactId>sharding-jdbc-spring-boot-starter</artifactId>
+       <version>4.1.1</version>
+   </dependency>
+   ```
+
+
+###### 碰到的bug
+
+1. `sharding-jdbc-spring-boot-starter`,无法解析`LocalDateTime`以及`LocalDate`
+
+   > 修复: 
+   >
+   > - 依赖升级
+   >
+   > ```xml
+   > <dependency>
+   >     <groupId>org.apache.shardingsphere</groupId>
+   >     <artifactId>shardingsphere-jdbc-core-spring-boot-starter</artifactId>
+   >     <version>5.2.1</version>
+   >     <exclusions>
+   >         <exclusion>
+   >             <groupId>org.yaml</groupId>
+   >             <artifactId>snakeyaml</artifactId>
+   >         </exclusion>
+   >     </exclusions>
+   > </dependency>
+   > ```
+   >
+   > - `5.x.x`版本yml配置不同,更改为:
+   >
+   > ```yaml
+   > spring:
+   >   shardingsphere:
+   >     datasource:
+   >       names: m1
+   >       m1:
+   >         type: com.zaxxer.hikari.HikariDataSource
+   >         driver-class-name: com.mysql.cj.jdbc.Driver
+   >         jdbc-url: jdbc:mysql://localhost:3306/sharding_jdbc_demo?serverTimezone=UTC
+   >         username: root
+   >         password: pubgM666
+   > 
+   >     rules:
+   >       sharding:
+   >         tables:
+   >           t_order:
+   >             actual-data-nodes: m1.t_order_$->{1..2}
+   >             table-strategy:
+   >               standard:
+   >                 sharding-column: id
+   >                 sharding-algorithm-name: t_order_inline
+   >             key-generate-strategy:
+   >               column: id
+   >               key-generator-name: snowflake
+   > 
+   >         sharding-algorithms:
+   >           t_order_inline:
+   >             type: INLINE
+   >             props:
+   >               algorithm-expression: t_order_$->{id % 2 + 1}
+   > 
+   >         key-generators:
+   >           snowflake:
+   >             type: SNOWFLAKE
+   >             props:
+   >               worker-id: 100
+   >               max-tolerate-time-difference-milliseconds: 20
+   > 
+   >     props:
+   >       sql-show: true   # 开启SQL打印，方便调试
+   > ```
+
+2. `mybatis-plus`与`sharding-jdbc`的不兼容
+
+   >  解决: `sql`都使用`mapper`方式定义,不使用`mybatis-plus`
+
+
+#####  水平分库demo
+
+**`yml`配置:**
+
+```yaml
+spring:
+  shardingsphere:
+    datasource:
+      names: m1, m2
+      m1:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: jdbc:mysql://localhost:3306/sharding_jdbc_demo?serverTimezone=UTC
+        username: root
+        password: pubgM666
+      m2:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: jdbc:mysql://localhost:3306/sharding_jdbc_demo2?serverTimezone=UTC
+        username: root
+        password: pubgM666
+
+    rules:
+      sharding:
+        tables:
+          t_order:
+            actual-data-nodes: m$->{1..2}.t_order_$->{1..2}
+            database-strategy:
+              standard:
+                sharding-column: product_id
+                sharding-algorithm-name: t_order_database_inline
+            table-strategy:
+              standard:
+                sharding-column: id
+                sharding-algorithm-name: t_order_inline
+            key-generate-strategy:
+              column: id
+              key-generator-name: snowflake
+
+        sharding-algorithms:
+          t_order_inline:
+            type: INLINE
+            props:
+              algorithm-expression: t_order_$->{id % 2 + 1}
+          t_order_database_inline:
+            type: INLINE
+            props:
+              algorithm-expression: m$->{product_id % 2 + 1}
+
+        key-generators:
+          snowflake:
+            type: SNOWFLAKE
+            props:
+              worker-id: 100
+              max-tolerate-time-difference-milliseconds: 20
+
+    props:
+      sql-show: true   # 开启SQL打印，方便调试
+```
+
+
+
+##### 垂直分库
+
+**数据库准备**
+
+```sql
+create database sharding_jdbc_userdb;
+
+create table `user`(
+	`id` bigint auto_increment primary key comment 'id,主键',
+    `username` varchar(16) not null comment '用户名',
+    `encoded_password` varchar(256) not null comment '加密后的密码',
+    `salt` char(16) not null comment '随机盐',
+    `create_date` datetime not null comment '创建时间'
+)engine=innodb default charset=utf8mb4 comment='用户表';
+```
+
+
+
+##### 广播表
+
+若垂直分库后,部分库都需要对某个表join,并且此表数据读u多写少,可以将其作为为公告表
+
+```sql
+create table common(
+	`id` bigint primary key auto_increment comment '主键',
+    `name` varchar(32) null comment '名字'
+)engine=innodb default charset=utf8mb4 comment='公共表';
+```
+
+**`yml`配置:**
+
+```yaml
+spring:
+  shardingsphere:
+    rules:
+      sharding:
+        # 广播表
+        broadcast-tables:
+          common
+```
+
+##### sharding-jdbc读写分离
+
+> `sharding-jdbc`根据`sql`语义,将写操作路由至`master`,将读操作路由至`slave`.提供透明化读写操作,像使用一个数据库一样使用主从数据库集群.
+>
+> ![image-20250429231159360](http://192.168.1.101:9000/kijjqvbsoduu/imgs/image-20250429231159431.png)
+
+`yaml`配置
+
+```yaml
+    rules:
+      readwrite-splitting:
+        data-sources:
+          m0_group:
+            static-strategy:
+              write-data-source-name: m0
+              read-data-source-names:
+                - s0
+            load-balancer-name: round_robin
+        load-balancers:
+          round_robin:
+            type: ROUND_ROBIN
+      sharding:
+        # 广播表
+        broadcast-tables:
+          common
+        tables:
+          user:
+            actual-data-nodes: m0_group.user
+```
+
+##### 实践
+
+**描述:**
+
+以商品为例,进行实践.
+
+###### 数据库设计
+
+>  *entity:*
+>
+>  - 商品
+>  - 店铺
+>  - 地理区域
+>
+>  *垂直分库:*
+>
+>  将商品以及店铺划分到product_db,store_db
+>
+>  *垂直分表:*
+>
+>  将商品信息划分为product_info,product_desc
+>
+>  *广播表:*
+>
+>  region
+>
+>  *水平分库:*
+>
+>  将product_db根据store_id分库
+>
+>  *水平分表:*
+>
+>  将product_info根据product_id分表
+
+###### sql准备
+
+product_info
+
+```sql
+create database product_db_1;
+create database product_db_2;
+
+create table product_info_1(
+	`id` bigint primary key comment '商品id',
+    `store_id` bigint not null comment '所属店铺id',
+    `name` varchar(64) not null comment '商品名称',
+    `specification` varchar(8) not null comment '规格',
+    `source_place` varchar(16) null comment '产地',
+    `price` decimal not null comment '价格',
+    `pic_url` varchar(200) not null comment '图片url'
+) engine=innodb default charset=utf8mb4 comment='商品信息表';
+```
+
+product_desc
+
+```sql
+create table product_desc_1(
+	`id` bigint auto_increment primary key comment 'id',
+    `product_id` bigint not null comment '商品id',
+    `store_id` bigint not null comment '店铺id',
+    `desc` text not null comment '商品描述'
+) engine=innodb default charset=utf8mb4 comment '商品描述表';
+```
+
+store
+
+```sql
+create databse store_db;
+
+create table store(
+	`id` bigint primary key auto_increment comment '店铺id',
+    `name` varchar(32) not null comment '店铺名称',
+    `score` float null default 0 comment '店铺评分',
+    `source_place_id` bigint not null comment '店铺所在地'
+) engine=innodb default charset=utf8mb4 comment '店铺信息表';
+```
+
+region
+
+```sql
+create table region(
+	`id` bigint primary key auto_increment comment 'id',
+    `code` bigint not null comment '地域编码',
+    `name` varchar(32) not null comment '地理区域名称',
+    `level` int not null comment '级别,省:1 市:2 县:3 镇:4',
+    `parent` bigint null comment '上级地理区域'
+) engine=innodb default charset=utf8mb4 comment '地域信息表';
+```
+
+。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://iamdurant.github.io/post/sharding-jdbc-fen-ku-fen-biao.html">
+<meta property="og:image" content="https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1730782842.png?x-oss-process=image%2Fformat%2Cwebp">
+<title>sharding-jdbc分库分表</title>
+<link href="//unpkg.com/@wooorm/starry-night@2.1.1/style/both.css" rel="stylesheet" />
+
+
+</head>
+<style>
+body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;padding: 45px;font-size: 16px;font-family: sans-serif;line-height: 1.25;}
+#header{display:flex;padding-bottom:8px;border-bottom: 1px solid var(--borderColor-muted, var(--color-border-muted));margin-bottom: 16px;}
+#footer {margin-top:64px; text-align: center;font-size: small;}
+
+</style>
+
+<style>
+.postTitle{margin: auto 0;font-size:40px;font-weight:bold;}
+.title-right{display:flex;margin:auto 0 0 auto;}
+.title-right .circle{padding: 14px 16px;margin-right:8px;}
+#postBody{border-bottom: 1px solid var(--color-border-default);padding-bottom:36px;}
+#postBody hr{height:2px;}
+#cmButton{height:48px;margin-top:48px;}
+#comments{margin-top:64px;}
+.g-emoji{font-size:24px;}
+@media (max-width: 600px) {
+    body {padding: 8px;}
+    .postTitle{font-size:24px;}
+}
+.copy-feedback {
+    display: none;
+    position: absolute;
+    top: 10px;
+    right: 50px;
+    color: var(--color-fg-on-emphasis);
+    background-color: var(--color-fg-muted);
+    border-radius: 3px;
+    padding: 5px 8px;
+    font-size: 12px;
+}
+</style>
+
+
+
+
+<body>
+    <div id="header">
+<h1 class="postTitle">sharding-jdbc分库分表</h1>
+<div class="title-right">
+    <a href="https://iamdurant.github.io" id="buttonHome" class="btn btn-invisible circle" title="首页">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathHome" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+    <a href="https://github.com/iamdurant/iamdurant.github.io/issues/39" target="_blank" class="btn btn-invisible circle" title="Issue">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathIssue" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+
+    <a class="btn btn-invisible circle" onclick="modeSwitch();" title="切换主题">
+        <svg class="octicon" width="16" height="16" >
+            <path id="themeSwitch" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+
+</div>
+</div>
+    <div id="content">
+<div class="markdown-body" id="postBody"><h5>分库分表</h5>
+<ul>
+<li>
+<p>垂直分表</p>
+<blockquote>
+<p>将频繁访问的属性与访问率较低的属性,拆分到两张表</p>
+</blockquote>
+</li>
+<li>
+<p>垂直分库</p>
+<blockquote>
+<p>将不相关的业务实体,拆分到两个数据库</p>
+</blockquote>
+</li>
+<li>
+<p>水平分库</p>
+<blockquote>
+<p>将表数据划分到不同的数据库</p>
+</blockquote>
+</li>
+<li>
+<p>水平分表</p>
+<blockquote>
+<p>将表水平拆分成多个表</p>
+</blockquote>
+</li>
+</ul>
+<h5>sharding-jdbc-sql执行过程</h5>
+<ol>
+<li>解析</li>
+<li>改写</li>
+<li>路由</li>
+<li>执行</li>
+<li>归并</li>
+</ol>
+<h5>水平分表demo</h5>
+<p><strong>水平分表</strong></p>
+<p><code class="notranslate">sql</code>准备,创建两张表: <code class="notranslate">t_order_1</code>,<code class="notranslate">t_order_2</code></p>
+<div class="highlight highlight-source-sql"><pre class="notranslate"><span class="pl-k">create</span> <span class="pl-k">table</span> <span class="pl-en">t_order_2</span>(
+	<span class="pl-s"><span class="pl-pds">`</span>id<span class="pl-pds">`</span></span> <span class="pl-k">bigint</span> <span class="pl-k">primary key</span> comment <span class="pl-s"><span class="pl-pds">'</span>订单id<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>product_id<span class="pl-pds">`</span></span> <span class="pl-k">bigint</span> <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>商品id<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>amount<span class="pl-pds">`</span></span> <span class="pl-k">int</span> <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>购买数量<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>buyer_id<span class="pl-pds">`</span></span> <span class="pl-k">bigint</span> <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>购买者id<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>create_date<span class="pl-pds">`</span></span> datetime <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>下单时间<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>status<span class="pl-pds">`</span></span> <span class="pl-k">int</span> <span class="pl-k">not null</span> default <span class="pl-c1">0</span> comment <span class="pl-s"><span class="pl-pds">'</span>订单状态 0: 未支付, 1: 已支付, 2: 超时, 3: 取消, 4: 其他<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>pay_time<span class="pl-pds">`</span></span> datetime <span class="pl-k">null</span> comment <span class="pl-s"><span class="pl-pds">'</span>支付时间<span class="pl-pds">'</span></span>
+) engine<span class="pl-k">=</span>innodb default charset<span class="pl-k">=</span>utf8mb4 comment<span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">'</span>订单表2<span class="pl-pds">'</span></span>;</pre></div>
+<p><code class="notranslate">maven</code>依赖</p>
+<div class="highlight highlight-text-xml"><pre class="notranslate">&lt;<span class="pl-ent">dependencies</span>&gt;
+    &lt;<span class="pl-ent">dependency</span>&gt;
+        &lt;<span class="pl-ent">groupId</span>&gt;org.springframework.boot&lt;/<span class="pl-ent">groupId</span>&gt;
+        &lt;<span class="pl-ent">artifactId</span>&gt;spring-boot-starter-web&lt;/<span class="pl-ent">artifactId</span>&gt;
+        &lt;<span class="pl-ent">version</span>&gt;2.7.15&lt;/<span class="pl-ent">version</span>&gt;
+        &lt;<span class="pl-ent">exclusions</span>&gt;
+            &lt;<span class="pl-ent">exclusion</span>&gt;
+                &lt;<span class="pl-ent">groupId</span>&gt;org.slf4j&lt;/<span class="pl-ent">groupId</span>&gt;
+                &lt;<span class="pl-ent">artifactId</span>&gt;slf4j-api&lt;/<span class="pl-ent">artifactId</span>&gt;
+            &lt;/<span class="pl-ent">exclusion</span>&gt;
+            &lt;<span class="pl-ent">exclusion</span>&gt;
+                &lt;<span class="pl-ent">groupId</span>&gt;org.springframework.boot&lt;/<span class="pl-ent">groupId</span>&gt;
+                &lt;<span class="pl-ent">artifactId</span>&gt;spring-boot-starter-logging&lt;/<span class="pl-ent">artifactId</span>&gt;
+            &lt;/<span class="pl-ent">exclusion</span>&gt;
+        &lt;/<span class="pl-ent">exclusions</span>&gt;
+    &lt;/<span class="pl-ent">dependency</span>&gt;
+
+    &lt;<span class="pl-ent">dependency</span>&gt;
+        &lt;<span class="pl-ent">groupId</span>&gt;org.projectlombok&lt;/<span class="pl-ent">groupId</span>&gt;
+        &lt;<span class="pl-ent">artifactId</span>&gt;lombok&lt;/<span class="pl-ent">artifactId</span>&gt;
+        &lt;<span class="pl-ent">version</span>&gt;1.18.34&lt;/<span class="pl-ent">version</span>&gt;
+    &lt;/<span class="pl-ent">dependency</span>&gt;
+
+    &lt;<span class="pl-ent">dependency</span>&gt;
+        &lt;<span class="pl-ent">groupId</span>&gt;mysql&lt;/<span class="pl-ent">groupId</span>&gt;
+        &lt;<span class="pl-ent">artifactId</span>&gt;mysql-connector-java&lt;/<span class="pl-ent">artifactId</span>&gt;
+        &lt;<span class="pl-ent">version</span>&gt;8.0.30&lt;/<span class="pl-ent">version</span>&gt;
+    &lt;/<span class="pl-ent">dependency</span>&gt;
+
+    &lt;<span class="pl-ent">dependency</span>&gt;
+        &lt;<span class="pl-ent">groupId</span>&gt;com.baomidou&lt;/<span class="pl-ent">groupId</span>&gt;
+        &lt;<span class="pl-ent">artifactId</span>&gt;mybatis-plus-boot-starter&lt;/<span class="pl-ent">artifactId</span>&gt;
+        &lt;<span class="pl-ent">version</span>&gt;3.5.5&lt;/<span class="pl-ent">version</span>&gt;
+        &lt;<span class="pl-ent">exclusions</span>&gt;
+            &lt;<span class="pl-ent">exclusion</span>&gt;
+                &lt;<span class="pl-ent">groupId</span>&gt;org.slf4j&lt;/<span class="pl-ent">groupId</span>&gt;
+                &lt;<span class="pl-ent">artifactId</span>&gt;slf4j-api&lt;/<span class="pl-ent">artifactId</span>&gt;
+            &lt;/<span class="pl-ent">exclusion</span>&gt;
+        &lt;/<span class="pl-ent">exclusions</span>&gt;
+    &lt;/<span class="pl-ent">dependency</span>&gt;
+
+    &lt;<span class="pl-ent">dependency</span>&gt;
+        &lt;<span class="pl-ent">groupId</span>&gt;com.github.xiaoymin&lt;/<span class="pl-ent">groupId</span>&gt;
+        &lt;<span class="pl-ent">artifactId</span>&gt;knife4j-openapi2-spring-boot-starter&lt;/<span class="pl-ent">artifactId</span>&gt;
+        &lt;<span class="pl-ent">version</span>&gt;4.2.0&lt;/<span class="pl-ent">version</span>&gt;
+    &lt;/<span class="pl-ent">dependency</span>&gt;
+
+    &lt;<span class="pl-ent">dependency</span>&gt;
+        &lt;<span class="pl-ent">groupId</span>&gt;org.apache.shardingsphere&lt;/<span class="pl-ent">groupId</span>&gt;
+        &lt;<span class="pl-ent">artifactId</span>&gt;sharding-jdbc-spring-boot-starter&lt;/<span class="pl-ent">artifactId</span>&gt;
+        &lt;<span class="pl-ent">version</span>&gt;4.1.1&lt;/<span class="pl-ent">version</span>&gt;
+    &lt;/<span class="pl-ent">dependency</span>&gt;
+
+
+    &lt;<span class="pl-ent">dependency</span>&gt;
+        &lt;<span class="pl-ent">groupId</span>&gt;org.springframework.boot&lt;/<span class="pl-ent">groupId</span>&gt;
+        &lt;<span class="pl-ent">artifactId</span>&gt;spring-boot-starter-logging&lt;/<span class="pl-ent">artifactId</span>&gt;
+        &lt;<span class="pl-ent">version</span>&gt;2.7.15&lt;/<span class="pl-ent">version</span>&gt;
+    &lt;/<span class="pl-ent">dependency</span>&gt;
+&lt;/<span class="pl-ent">dependencies</span>&gt;
+
+&lt;<span class="pl-ent">properties</span>&gt;
+    &lt;<span class="pl-ent">maven</span>.compiler.source&gt;17&lt;/<span class="pl-ent">maven</span>.compiler.source&gt;
+    &lt;<span class="pl-ent">maven</span>.compiler.target&gt;17&lt;/<span class="pl-ent">maven</span>.compiler.target&gt;
+    &lt;<span class="pl-ent">project</span>.build.sourceEncoding&gt;UTF-8&lt;/<span class="pl-ent">project</span>.build.sourceEncoding&gt;
+&lt;/<span class="pl-ent">properties</span>&gt;</pre></div>
+<p><code class="notranslate">yaml</code>配置</p>
+<div class="highlight highlight-source-yaml"><pre class="notranslate"><span class="pl-ent">server</span>:
+  <span class="pl-ent">port</span>: <span class="pl-c1">8888</span>
+
+<span class="pl-ent">mybatis-plus</span>:
+  <span class="pl-ent">configuration</span>:
+    <span class="pl-ent">map-underscore-to-camel-case</span>: <span class="pl-c1">true</span>
+
+<span class="pl-ent">spring</span>:
+  <span class="pl-c"><span class="pl-c">#</span> sharding-jdbc 配置</span>
+  <span class="pl-ent">shardingsphere</span>:
+    <span class="pl-ent">datasource</span>:
+      <span class="pl-ent">names</span>: <span class="pl-c1">m1</span>
+      <span class="pl-ent">m1</span>:
+        <span class="pl-ent">type</span>: <span class="pl-s">com.zaxxer.hikari.HikariDataSource</span>
+        <span class="pl-ent">driver-class-name</span>: <span class="pl-s">com.mysql.cj.jdbc.Driver</span>
+        <span class="pl-ent">jdbc-url</span>: <span class="pl-s">jdbc:mysql://localhost:3306/sharding_jdbc_demo?serverTimezone=UTC</span>
+        <span class="pl-ent">username</span>: <span class="pl-s">root</span>
+        <span class="pl-ent">password</span>: <span class="pl-s">pubgM666</span>
+    <span class="pl-ent">sharding</span>:
+      <span class="pl-ent">tables</span>:
+        <span class="pl-ent">t_order</span>:
+          <span class="pl-ent">actual-data-nodes</span>: <span class="pl-s">m1.t_order_$-&gt;{1..2}</span>
+          <span class="pl-ent">table-strategy</span>:
+            <span class="pl-ent">inline</span>:
+              <span class="pl-ent">sharding-column</span>: <span class="pl-s">id</span>
+              <span class="pl-ent">algorithm-expression</span>: <span class="pl-s">t_order_$-&gt;{id % 2 + 1}</span>
+          <span class="pl-ent">key-generator</span>:
+            <span class="pl-ent">column</span>: <span class="pl-s">id</span>
+            <span class="pl-ent">type</span>: <span class="pl-s">SNOWFLAKE</span>
+            <span class="pl-ent">props</span>:
+              <span class="pl-ent">worker</span>:
+                <span class="pl-ent">id</span>: <span class="pl-c1">100</span>
+              <span class="pl-ent">max</span>:
+                <span class="pl-ent">tolerate</span>:
+                  <span class="pl-ent">time</span>:
+                    <span class="pl-ent">difference</span>:
+                      <span class="pl-ent">milliseconds</span>: <span class="pl-c1">20</span></pre></div>
+<p><strong>细节</strong></p>
+<ol>
+<li>
+<p>雪花算法生成的字段,在insert时,需要自定义<code class="notranslate">sql</code>,将次字段从<code class="notranslate">sql</code>插入字段中去除:</p>
+<blockquote>
+<p>比如:</p>
+<p>定义id字段为雪花算法自动生成,则<code class="notranslate">insert sql</code>为:</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-c1">@</span><span class="pl-c1">Insert</span>(<span class="pl-s">"insert into t_order(product_id, amount, buyer_id, create_date, status, pay_time) values(#{productId}, #{amount}, #{buyerId}, #{createDate}, #{status}, #{payTime})"</span>)
+ <span class="pl-smi">int</span> <span class="pl-en">insert</span>(<span class="pl-smi">TOrder</span> <span class="pl-s1">tOrder</span>);</pre></div>
+</blockquote>
+</li>
+<li>
+<p>依赖不能导错,<code class="notranslate">sharding-jdbc</code>依赖:</p>
+<div class="highlight highlight-text-xml"><pre class="notranslate">&lt;<span class="pl-ent">dependency</span>&gt;
+    &lt;<span class="pl-ent">groupId</span>&gt;org.apache.shardingsphere&lt;/<span class="pl-ent">groupId</span>&gt;
+    &lt;<span class="pl-ent">artifactId</span>&gt;sharding-jdbc-spring-boot-starter&lt;/<span class="pl-ent">artifactId</span>&gt;
+    &lt;<span class="pl-ent">version</span>&gt;4.1.1&lt;/<span class="pl-ent">version</span>&gt;
+&lt;/<span class="pl-ent">dependency</span>&gt;</pre></div>
+</li>
+</ol>
+<h6>碰到的bug</h6>
+<ol>
+<li>
+<p><code class="notranslate">sharding-jdbc-spring-boot-starter</code>,无法解析<code class="notranslate">LocalDateTime</code>以及<code class="notranslate">LocalDate</code></p>
+<blockquote>
+<p>修复:</p>
+<ul>
+<li>依赖升级</li>
+</ul>
+<div class="highlight highlight-text-xml"><pre class="notranslate">&lt;<span class="pl-ent">dependency</span>&gt;
+    &lt;<span class="pl-ent">groupId</span>&gt;org.apache.shardingsphere&lt;/<span class="pl-ent">groupId</span>&gt;
+    &lt;<span class="pl-ent">artifactId</span>&gt;shardingsphere-jdbc-core-spring-boot-starter&lt;/<span class="pl-ent">artifactId</span>&gt;
+    &lt;<span class="pl-ent">version</span>&gt;5.2.1&lt;/<span class="pl-ent">version</span>&gt;
+    &lt;<span class="pl-ent">exclusions</span>&gt;
+        &lt;<span class="pl-ent">exclusion</span>&gt;
+            &lt;<span class="pl-ent">groupId</span>&gt;org.yaml&lt;/<span class="pl-ent">groupId</span>&gt;
+            &lt;<span class="pl-ent">artifactId</span>&gt;snakeyaml&lt;/<span class="pl-ent">artifactId</span>&gt;
+        &lt;/<span class="pl-ent">exclusion</span>&gt;
+    &lt;/<span class="pl-ent">exclusions</span>&gt;
+&lt;/<span class="pl-ent">dependency</span>&gt;</pre></div>
+<ul>
+<li><code class="notranslate">5.x.x</code>版本yml配置不同,更改为:</li>
+</ul>
+<div class="highlight highlight-source-yaml"><pre class="notranslate"><span class="pl-ent">spring</span>:
+  <span class="pl-ent">shardingsphere</span>:
+    <span class="pl-ent">datasource</span>:
+      <span class="pl-ent">names</span>: <span class="pl-c1">m1</span>
+      <span class="pl-ent">m1</span>:
+        <span class="pl-ent">type</span>: <span class="pl-s">com.zaxxer.hikari.HikariDataSource</span>
+        <span class="pl-ent">driver-class-name</span>: <span class="pl-s">com.mysql.cj.jdbc.Driver</span>
+        <span class="pl-ent">jdbc-url</span>: <span class="pl-s">jdbc:mysql://localhost:3306/sharding_jdbc_demo?serverTimezone=UTC</span>
+        <span class="pl-ent">username</span>: <span class="pl-s">root</span>
+        <span class="pl-ent">password</span>: <span class="pl-s">pubgM666</span>
+
+    <span class="pl-ent">rules</span>:
+      <span class="pl-ent">sharding</span>:
+        <span class="pl-ent">tables</span>:
+          <span class="pl-ent">t_order</span>:
+            <span class="pl-ent">actual-data-nodes</span>: <span class="pl-s">m1.t_order_$-&gt;{1..2}</span>
+            <span class="pl-ent">table-strategy</span>:
+              <span class="pl-ent">standard</span>:
+                <span class="pl-ent">sharding-column</span>: <span class="pl-s">id</span>
+                <span class="pl-ent">sharding-algorithm-name</span>: <span class="pl-s">t_order_inline</span>
+            <span class="pl-ent">key-generate-strategy</span>:
+              <span class="pl-ent">column</span>: <span class="pl-s">id</span>
+              <span class="pl-ent">key-generator-name</span>: <span class="pl-s">snowflake</span>
+
+        <span class="pl-ent">sharding-algorithms</span>:
+          <span class="pl-ent">t_order_inline</span>:
+            <span class="pl-ent">type</span>: <span class="pl-s">INLINE</span>
+            <span class="pl-ent">props</span>:
+              <span class="pl-ent">algorithm-expression</span>: <span class="pl-s">t_order_$-&gt;{id % 2 + 1}</span>
+
+        <span class="pl-ent">key-generators</span>:
+          <span class="pl-ent">snowflake</span>:
+            <span class="pl-ent">type</span>: <span class="pl-s">SNOWFLAKE</span>
+            <span class="pl-ent">props</span>:
+              <span class="pl-ent">worker-id</span>: <span class="pl-c1">100</span>
+              <span class="pl-ent">max-tolerate-time-difference-milliseconds</span>: <span class="pl-c1">20</span>
+
+    <span class="pl-ent">props</span>:
+      <span class="pl-ent">sql-show</span>: <span class="pl-s">true   </span><span class="pl-c"><span class="pl-c">#</span> 开启SQL打印，方便调试</span></pre></div>
+</blockquote>
+</li>
+<li>
+<p><code class="notranslate">mybatis-plus</code>与<code class="notranslate">sharding-jdbc</code>的不兼容</p>
+<blockquote>
+<p>解决: <code class="notranslate">sql</code>都使用<code class="notranslate">mapper</code>方式定义,不使用<code class="notranslate">mybatis-plus</code></p>
+</blockquote>
+</li>
+</ol>
+<h5>水平分库demo</h5>
+<p><strong><code class="notranslate">yml</code>配置:</strong></p>
+<div class="highlight highlight-source-yaml"><pre class="notranslate"><span class="pl-ent">spring</span>:
+  <span class="pl-ent">shardingsphere</span>:
+    <span class="pl-ent">datasource</span>:
+      <span class="pl-ent">names</span>: <span class="pl-s">m1, m2</span>
+      <span class="pl-ent">m1</span>:
+        <span class="pl-ent">type</span>: <span class="pl-s">com.zaxxer.hikari.HikariDataSource</span>
+        <span class="pl-ent">driver-class-name</span>: <span class="pl-s">com.mysql.cj.jdbc.Driver</span>
+        <span class="pl-ent">jdbc-url</span>: <span class="pl-s">jdbc:mysql://localhost:3306/sharding_jdbc_demo?serverTimezone=UTC</span>
+        <span class="pl-ent">username</span>: <span class="pl-s">root</span>
+        <span class="pl-ent">password</span>: <span class="pl-s">pubgM666</span>
+      <span class="pl-ent">m2</span>:
+        <span class="pl-ent">type</span>: <span class="pl-s">com.zaxxer.hikari.HikariDataSource</span>
+        <span class="pl-ent">driver-class-name</span>: <span class="pl-s">com.mysql.cj.jdbc.Driver</span>
+        <span class="pl-ent">jdbc-url</span>: <span class="pl-s">jdbc:mysql://localhost:3306/sharding_jdbc_demo2?serverTimezone=UTC</span>
+        <span class="pl-ent">username</span>: <span class="pl-s">root</span>
+        <span class="pl-ent">password</span>: <span class="pl-s">pubgM666</span>
+
+    <span class="pl-ent">rules</span>:
+      <span class="pl-ent">sharding</span>:
+        <span class="pl-ent">tables</span>:
+          <span class="pl-ent">t_order</span>:
+            <span class="pl-ent">actual-data-nodes</span>: <span class="pl-s">m$-&gt;{1..2}.t_order_$-&gt;{1..2}</span>
+            <span class="pl-ent">database-strategy</span>:
+              <span class="pl-ent">standard</span>:
+                <span class="pl-ent">sharding-column</span>: <span class="pl-s">product_id</span>
+                <span class="pl-ent">sharding-algorithm-name</span>: <span class="pl-s">t_order_database_inline</span>
+            <span class="pl-ent">table-strategy</span>:
+              <span class="pl-ent">standard</span>:
+                <span class="pl-ent">sharding-column</span>: <span class="pl-s">id</span>
+                <span class="pl-ent">sharding-algorithm-name</span>: <span class="pl-s">t_order_inline</span>
+            <span class="pl-ent">key-generate-strategy</span>:
+              <span class="pl-ent">column</span>: <span class="pl-s">id</span>
+              <span class="pl-ent">key-generator-name</span>: <span class="pl-s">snowflake</span>
+
+        <span class="pl-ent">sharding-algorithms</span>:
+          <span class="pl-ent">t_order_inline</span>:
+            <span class="pl-ent">type</span>: <span class="pl-s">INLINE</span>
+            <span class="pl-ent">props</span>:
+              <span class="pl-ent">algorithm-expression</span>: <span class="pl-s">t_order_$-&gt;{id % 2 + 1}</span>
+          <span class="pl-ent">t_order_database_inline</span>:
+            <span class="pl-ent">type</span>: <span class="pl-s">INLINE</span>
+            <span class="pl-ent">props</span>:
+              <span class="pl-ent">algorithm-expression</span>: <span class="pl-s">m$-&gt;{product_id % 2 + 1}</span>
+
+        <span class="pl-ent">key-generators</span>:
+          <span class="pl-ent">snowflake</span>:
+            <span class="pl-ent">type</span>: <span class="pl-s">SNOWFLAKE</span>
+            <span class="pl-ent">props</span>:
+              <span class="pl-ent">worker-id</span>: <span class="pl-c1">100</span>
+              <span class="pl-ent">max-tolerate-time-difference-milliseconds</span>: <span class="pl-c1">20</span>
+
+    <span class="pl-ent">props</span>:
+      <span class="pl-ent">sql-show</span>: <span class="pl-s">true   </span><span class="pl-c"><span class="pl-c">#</span> 开启SQL打印，方便调试</span></pre></div>
+<h5>垂直分库</h5>
+<p><strong>数据库准备</strong></p>
+<div class="highlight highlight-source-sql"><pre class="notranslate"><span class="pl-k">create</span> <span class="pl-k">database</span> <span class="pl-en">sharding_jdbc_userdb</span>;
+
+<span class="pl-k">create</span> <span class="pl-k">table</span> `<span class="pl-en">user</span>`(
+	<span class="pl-s"><span class="pl-pds">`</span>id<span class="pl-pds">`</span></span> <span class="pl-k">bigint</span> auto_increment <span class="pl-k">primary key</span> comment <span class="pl-s"><span class="pl-pds">'</span>id,主键<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>username<span class="pl-pds">`</span></span> <span class="pl-k">varchar</span>(<span class="pl-c1">16</span>) <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>用户名<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>encoded_password<span class="pl-pds">`</span></span> <span class="pl-k">varchar</span>(<span class="pl-c1">256</span>) <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>加密后的密码<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>salt<span class="pl-pds">`</span></span> <span class="pl-k">char</span>(<span class="pl-c1">16</span>) <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>随机盐<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>create_date<span class="pl-pds">`</span></span> datetime <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>创建时间<span class="pl-pds">'</span></span>
+)engine<span class="pl-k">=</span>innodb default charset<span class="pl-k">=</span>utf8mb4 comment<span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">'</span>用户表<span class="pl-pds">'</span></span>;</pre></div>
+<h5>广播表</h5>
+<p>若垂直分库后,部分库都需要对某个表join,并且此表数据读u多写少,可以将其作为为公告表</p>
+<div class="highlight highlight-source-sql"><pre class="notranslate"><span class="pl-k">create</span> <span class="pl-k">table</span> <span class="pl-en">common</span>(
+	<span class="pl-s"><span class="pl-pds">`</span>id<span class="pl-pds">`</span></span> <span class="pl-k">bigint</span> <span class="pl-k">primary key</span> auto_increment comment <span class="pl-s"><span class="pl-pds">'</span>主键<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>name<span class="pl-pds">`</span></span> <span class="pl-k">varchar</span>(<span class="pl-c1">32</span>) <span class="pl-k">null</span> comment <span class="pl-s"><span class="pl-pds">'</span>名字<span class="pl-pds">'</span></span>
+)engine<span class="pl-k">=</span>innodb default charset<span class="pl-k">=</span>utf8mb4 comment<span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">'</span>公共表<span class="pl-pds">'</span></span>;</pre></div>
+<p><strong><code class="notranslate">yml</code>配置:</strong></p>
+<div class="highlight highlight-source-yaml"><pre class="notranslate"><span class="pl-ent">spring</span>:
+  <span class="pl-ent">shardingsphere</span>:
+    <span class="pl-ent">rules</span>:
+      <span class="pl-ent">sharding</span>:
+        <span class="pl-c"><span class="pl-c">#</span> 广播表</span>
+        <span class="pl-ent">broadcast-tables</span>:
+          <span class="pl-s">common</span></pre></div>
+<h5>sharding-jdbc读写分离</h5>
+<blockquote>
+<p><code class="notranslate">sharding-jdbc</code>根据<code class="notranslate">sql</code>语义,将写操作路由至<code class="notranslate">master</code>,将读操作路由至<code class="notranslate">slave</code>.提供透明化读写操作,像使用一个数据库一样使用主从数据库集群.</p>
+<p><a target="_blank" rel="noopener noreferrer nofollow" href="https://camo.githubusercontent.com/86f63962feb18d14efbe748f60534faaa73b43cff20f00b9e17a227e992aaab8/687474703a2f2f3139322e3136382e312e3130313a393030302f6b696a6a717662736f6475752f696d67732f696d6167652d32303235303432393233313135393433312e706e67"><img src="https://camo.githubusercontent.com/86f63962feb18d14efbe748f60534faaa73b43cff20f00b9e17a227e992aaab8/687474703a2f2f3139322e3136382e312e3130313a393030302f6b696a6a717662736f6475752f696d67732f696d6167652d32303235303432393233313135393433312e706e67" alt="image-20250429231159360" data-canonical-src="http://192.168.1.101:9000/kijjqvbsoduu/imgs/image-20250429231159431.png" style="max-width: 100%;"></a></p>
+</blockquote>
+<p><code class="notranslate">yaml</code>配置</p>
+<div class="highlight highlight-source-yaml"><pre class="notranslate">    <span class="pl-ent">rules</span>:
+      <span class="pl-ent">readwrite-splitting</span>:
+        <span class="pl-ent">data-sources</span>:
+          <span class="pl-ent">m0_group</span>:
+            <span class="pl-ent">static-strategy</span>:
+              <span class="pl-ent">write-data-source-name</span>: <span class="pl-c1">m0</span>
+              <span class="pl-ent">read-data-source-names</span>:
+                - <span class="pl-c1">s0</span>
+            <span class="pl-ent">load-balancer-name</span>: <span class="pl-s">round_robin</span>
+        <span class="pl-ent">load-balancers</span>:
+          <span class="pl-ent">round_robin</span>:
+            <span class="pl-ent">type</span>: <span class="pl-s">ROUND_ROBIN</span>
+      <span class="pl-ent">sharding</span>:
+        <span class="pl-c"><span class="pl-c">#</span> 广播表</span>
+        <span class="pl-ent">broadcast-tables</span>:
+          <span class="pl-s">common</span>
+        <span class="pl-ent">tables</span>:
+          <span class="pl-ent">user</span>:
+            <span class="pl-ent">actual-data-nodes</span>: <span class="pl-s">m0_group.user</span></pre></div>
+<h5>实践</h5>
+<p><strong>描述:</strong></p>
+<p>以商品为例,进行实践.</p>
+<h6>数据库设计</h6>
+<blockquote>
+<p><em>entity:</em></p>
+<ul>
+<li>商品</li>
+<li>店铺</li>
+<li>地理区域</li>
+</ul>
+<p><em>垂直分库:</em></p>
+<p>将商品以及店铺划分到product_db,store_db</p>
+<p><em>垂直分表:</em></p>
+<p>将商品信息划分为product_info,product_desc</p>
+<p><em>广播表:</em></p>
+<p>region</p>
+<p><em>水平分库:</em></p>
+<p>将product_db根据store_id分库</p>
+<p><em>水平分表:</em></p>
+<p>将product_info根据product_id分表</p>
+</blockquote>
+<h6>sql准备</h6>
+<p>product_info</p>
+<div class="highlight highlight-source-sql"><pre class="notranslate"><span class="pl-k">create</span> <span class="pl-k">database</span> <span class="pl-en">product_db_1</span>;
+<span class="pl-k">create</span> <span class="pl-k">database</span> <span class="pl-en">product_db_2</span>;
+
+<span class="pl-k">create</span> <span class="pl-k">table</span> <span class="pl-en">product_info_1</span>(
+	<span class="pl-s"><span class="pl-pds">`</span>id<span class="pl-pds">`</span></span> <span class="pl-k">bigint</span> <span class="pl-k">primary key</span> comment <span class="pl-s"><span class="pl-pds">'</span>商品id<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>store_id<span class="pl-pds">`</span></span> <span class="pl-k">bigint</span> <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>所属店铺id<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>name<span class="pl-pds">`</span></span> <span class="pl-k">varchar</span>(<span class="pl-c1">64</span>) <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>商品名称<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>specification<span class="pl-pds">`</span></span> <span class="pl-k">varchar</span>(<span class="pl-c1">8</span>) <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>规格<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>source_place<span class="pl-pds">`</span></span> <span class="pl-k">varchar</span>(<span class="pl-c1">16</span>) <span class="pl-k">null</span> comment <span class="pl-s"><span class="pl-pds">'</span>产地<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>price<span class="pl-pds">`</span></span> <span class="pl-k">decimal</span> <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>价格<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>pic_url<span class="pl-pds">`</span></span> <span class="pl-k">varchar</span>(<span class="pl-c1">200</span>) <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>图片url<span class="pl-pds">'</span></span>
+) engine<span class="pl-k">=</span>innodb default charset<span class="pl-k">=</span>utf8mb4 comment<span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">'</span>商品信息表<span class="pl-pds">'</span></span>;</pre></div>
+<p>product_desc</p>
+<div class="highlight highlight-source-sql"><pre class="notranslate"><span class="pl-k">create</span> <span class="pl-k">table</span> <span class="pl-en">product_desc_1</span>(
+	<span class="pl-s"><span class="pl-pds">`</span>id<span class="pl-pds">`</span></span> <span class="pl-k">bigint</span> auto_increment <span class="pl-k">primary key</span> comment <span class="pl-s"><span class="pl-pds">'</span>id<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>product_id<span class="pl-pds">`</span></span> <span class="pl-k">bigint</span> <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>商品id<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>store_id<span class="pl-pds">`</span></span> <span class="pl-k">bigint</span> <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>店铺id<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>desc<span class="pl-pds">`</span></span> <span class="pl-k">text</span> <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>商品描述<span class="pl-pds">'</span></span>
+) engine<span class="pl-k">=</span>innodb default charset<span class="pl-k">=</span>utf8mb4 comment <span class="pl-s"><span class="pl-pds">'</span>商品描述表<span class="pl-pds">'</span></span>;</pre></div>
+<p>store</p>
+<div class="highlight highlight-source-sql"><pre class="notranslate">create databse store_db;
+
+<span class="pl-k">create</span> <span class="pl-k">table</span> <span class="pl-en">store</span>(
+	<span class="pl-s"><span class="pl-pds">`</span>id<span class="pl-pds">`</span></span> <span class="pl-k">bigint</span> <span class="pl-k">primary key</span> auto_increment comment <span class="pl-s"><span class="pl-pds">'</span>店铺id<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>name<span class="pl-pds">`</span></span> <span class="pl-k">varchar</span>(<span class="pl-c1">32</span>) <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>店铺名称<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>score<span class="pl-pds">`</span></span> float <span class="pl-k">null</span> default <span class="pl-c1">0</span> comment <span class="pl-s"><span class="pl-pds">'</span>店铺评分<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>source_place_id<span class="pl-pds">`</span></span> <span class="pl-k">bigint</span> <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>店铺所在地<span class="pl-pds">'</span></span>
+) engine<span class="pl-k">=</span>innodb default charset<span class="pl-k">=</span>utf8mb4 comment <span class="pl-s"><span class="pl-pds">'</span>店铺信息表<span class="pl-pds">'</span></span>;</pre></div>
+<p>region</p>
+<div class="highlight highlight-source-sql"><pre class="notranslate"><span class="pl-k">create</span> <span class="pl-k">table</span> <span class="pl-en">region</span>(
+	<span class="pl-s"><span class="pl-pds">`</span>id<span class="pl-pds">`</span></span> <span class="pl-k">bigint</span> <span class="pl-k">primary key</span> auto_increment comment <span class="pl-s"><span class="pl-pds">'</span>id<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>code<span class="pl-pds">`</span></span> <span class="pl-k">bigint</span> <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>地域编码<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>name<span class="pl-pds">`</span></span> <span class="pl-k">varchar</span>(<span class="pl-c1">32</span>) <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>地理区域名称<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>level<span class="pl-pds">`</span></span> <span class="pl-k">int</span> <span class="pl-k">not null</span> comment <span class="pl-s"><span class="pl-pds">'</span>级别,省:1 市:2 县:3 镇:4<span class="pl-pds">'</span></span>,
+    <span class="pl-s"><span class="pl-pds">`</span>parent<span class="pl-pds">`</span></span> <span class="pl-k">bigint</span> <span class="pl-k">null</span> comment <span class="pl-s"><span class="pl-pds">'</span>上级地理区域<span class="pl-pds">'</span></span>
+) engine<span class="pl-k">=</span>innodb default charset<span class="pl-k">=</span>utf8mb4 comment <span class="pl-s"><span class="pl-pds">'</span>地域信息表<span class="pl-pds">'</span></span>;</pre></div></div>
+<div style="font-size:small;margin-top:8px;float:right;">转载请注明出处</div>
+
+<button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
+<div class="comments" id="comments"></div>
+
+</div>
+    <div id="footer"><div id="footer1">Copyright © <span id="copyrightYear"></span> <a href="https://iamdurant.github.io">jasper</a></div>
+<div id="footer2">
+    <span id="runday"></span><span>Powered by <a href="https://meekdai.com/Gmeek.html" target="_blank">Gmeek</a></span>
+</div>
+
+<script>
+var now=new Date();
+document.getElementById("copyrightYear").innerHTML=now.getFullYear();
+
+if("06/19/2024"!=""){
+    var startSite=new Date("06/19/2024");
+    var diff=now.getTime()-startSite.getTime();
+    var diffDay=Math.floor(diff/(1000*60*60*24));
+    document.getElementById("runday").innerHTML="网站运行"+diffDay+"天"+" • ";
+}
+</script></div>
+</body>
+<script>
+var IconList={'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'sync': 'M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z', 'copy': 'M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z', 'check': 'M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z'};
+var utterancesLoad=0;
+
+let themeSettings={
+    "dark": ["dark","moon","#00f0ff","dark-blue"],
+    "light": ["light","sun","#ff5000","github-light"],
+    "auto": ["auto","sync","","preferred-color-scheme"]
+};
+function changeTheme(mode, icon, color, utheme){
+    document.documentElement.setAttribute("data-color-mode",mode);
+    document.getElementById("themeSwitch").setAttribute("d",value=IconList[icon]);
+    document.getElementById("themeSwitch").parentNode.style.color=color;
+    if(utterancesLoad==1){utterancesTheme(utheme);}
+}
+function modeSwitch(){
+    let currentMode=document.documentElement.getAttribute('data-color-mode');
+    let newMode = currentMode === "light" ? "dark" : currentMode === "dark" ? "auto" : "light";
+    localStorage.setItem("meek_theme", newMode);
+    if(themeSettings[newMode]){
+        changeTheme(...themeSettings[newMode]);
+    }
+}
+function utterancesTheme(theme){
+    const message={type:'set-theme',theme: theme};
+    const iframe=document.getElementsByClassName('utterances-frame')[0];
+    iframe.contentWindow.postMessage(message,'https://utteranc.es');
+}
+if(themeSettings[theme]){changeTheme(...themeSettings[theme]);}
+console.log("\n %c Gmeek last https://github.com/Meekdai/Gmeek \n","padding:5px 0;background:#02d81d;color:#fff");
+</script>
+
+<script>
+document.getElementById("pathHome").setAttribute("d",IconList["home"]);
+document.getElementById("pathIssue").setAttribute("d",IconList["github"]);
+
+
+
+function openComments(){
+    cm=document.getElementById("comments");
+    cmButton=document.getElementById("cmButton");
+    cmButton.innerHTML="loading";
+    span=document.createElement("span");
+    span.setAttribute("class","AnimatedEllipsis");
+    cmButton.appendChild(span);
+
+    script=document.createElement("script");
+    script.setAttribute("src","https://utteranc.es/client.js");
+    script.setAttribute("repo","iamdurant/iamdurant.github.io");
+    script.setAttribute("issue-term","title");
+    
+    if(localStorage.getItem("meek_theme")=="dark"){script.setAttribute("theme","dark-blue");}
+    else if(localStorage.getItem("meek_theme")=="light") {script.setAttribute("theme","github-light");}
+    else{script.setAttribute("theme","preferred-color-scheme");}
+    
+    script.setAttribute("crossorigin","anonymous");
+    script.setAttribute("async","");
+    cm.appendChild(script);
+
+    int=self.setInterval("iFrameLoading()",200);
+}
+
+function iFrameLoading(){
+    var utterances=document.getElementsByClassName('utterances');
+    if(utterances.length==1){
+        if(utterances[0].style.height!=""){
+            utterancesLoad=1;
+            int=window.clearInterval(int);
+            document.getElementById("cmButton").style.display="none";
+            console.log("utterances Load OK");
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const createClipboardHTML = (codeContent, additionalClasses = '') => `
+        <pre class="notranslate"><code class="notranslate">${codeContent}</code></pre>
+        <div class="clipboard-container position-absolute right-0 top-0 ${additionalClasses}">
+            <clipboard-copy class="ClipboardButton btn m-2 p-0" role="button" style="display: inherit;">
+                <svg height="16" width="16" class="octicon octicon-copy m-2"><path d="${IconList["copy"]}"></path></svg>
+                <svg height="16" width="16" class="octicon octicon-check color-fg-success m-2 d-none"><path d="${IconList["check"]}"></path></svg>
+            </clipboard-copy>
+            <div class="copy-feedback">Copied!</div>
+        </div>
+    `;
+
+    const handleCodeElements = (selector = '') => {
+        document.querySelectorAll(selector).forEach(codeElement => {
+            const codeContent = codeElement.innerHTML;
+            const newStructure = document.createElement('div');
+            newStructure.className = 'snippet-clipboard-content position-relative overflow-auto';
+            newStructure.innerHTML = createClipboardHTML(codeContent);
+
+            const parentElement = codeElement.parentElement;
+            if (selector.includes('highlight')) {
+                parentElement.insertBefore(newStructure, codeElement.nextSibling);
+                parentElement.removeChild(codeElement);
+            } else {
+                parentElement.parentElement.replaceChild(newStructure, parentElement);
+            }
+        });
+    };
+
+    handleCodeElements('pre.notranslate > code.notranslate');
+    handleCodeElements('div.highlight > pre.notranslate');
+
+    let currentFeedback = null;
+    document.querySelectorAll('clipboard-copy').forEach(copyButton => {
+        copyButton.addEventListener('click', () => {
+            const codeContent = copyButton.closest('.snippet-clipboard-content').innerText;
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = codeContent;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextArea);
+
+            const copyIcon = copyButton.querySelector('.octicon-copy');
+            const checkIcon = copyButton.querySelector('.octicon-check');
+            const copyFeedback = copyButton.nextElementSibling;
+
+            if (currentFeedback && currentFeedback !== copyFeedback) {currentFeedback.style.display = 'none';}
+            currentFeedback = copyFeedback;
+
+            copyIcon.classList.add('d-none');
+            checkIcon.classList.remove('d-none');
+            copyFeedback.style.display = 'block';
+            copyButton.style.borderColor = 'var(--color-success-fg)';
+
+            setTimeout(() => {
+                copyIcon.classList.remove('d-none');
+                checkIcon.classList.add('d-none');
+                copyFeedback.style.display = 'none';
+                copyButton.style.borderColor = '';
+            }, 2000);
+        });
+    });
+});
+
+</script>
+
+
+</html>

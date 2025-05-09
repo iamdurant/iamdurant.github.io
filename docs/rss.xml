@@ -1,5 +1,483 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>jasper</title><link>https://iamdurant.github.io</link><description>make programming great again</description><copyright>jasper</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1730782842.png?x-oss-process=image%2Fformat%2Cwebp</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Thu, 03 Apr 2025 21:07:13 +0000</lastBuildDate><managingEditor>jasper</managingEditor><ttl>60</ttl><webMaster>jasper</webMaster><item><title>LIS优化(nlogn)</title><link>https://iamdurant.github.io/post/LIS-you-hua-%28nlogn%29.html</link><description>**示例：**$[3,1,5,6,4,2]$
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>jasper</title><link>https://iamdurant.github.io</link><description>make programming great again</description><copyright>jasper</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1730782842.png?x-oss-process=image%2Fformat%2Cwebp</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Fri, 09 May 2025 22:06:30 +0000</lastBuildDate><managingEditor>jasper</managingEditor><ttl>60</ttl><webMaster>jasper</webMaster><item><title>sharding-jdbc分库分表</title><link>https://iamdurant.github.io/post/sharding-jdbc-fen-ku-fen-biao.html</link><description>##### 分库分表
+
+- 垂直分表
+
+  &gt; 将频繁访问的属性与访问率较低的属性,拆分到两张表
+
+- 垂直分库
+
+  &gt; 将不相关的业务实体,拆分到两个数据库
+
+- 水平分库
+
+  &gt; 将表数据划分到不同的数据库
+
+- 水平分表
+
+  &gt; 将表水平拆分成多个表
+
+
+
+#####  sharding-jdbc-sql执行过程
+
+1. 解析
+2. 改写
+3. 路由
+4. 执行
+5. 归并
+
+
+
+##### 水平分表demo
+
+**水平分表**
+
+`sql`准备,创建两张表: `t_order_1`,`t_order_2`
+
+```sql
+create table t_order_2(
+	`id` bigint primary key comment '订单id',
+    `product_id` bigint not null comment '商品id',
+    `amount` int not null comment '购买数量',
+    `buyer_id` bigint not null comment '购买者id',
+    `create_date` datetime not null comment '下单时间',
+    `status` int not null default 0 comment '订单状态 0: 未支付, 1: 已支付, 2: 超时, 3: 取消, 4: 其他',
+    `pay_time` datetime null comment '支付时间'
+) engine=innodb default charset=utf8mb4 comment='订单表2';
+```
+
+`maven`依赖
+
+```xml
+&lt;dependencies&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;
+        &lt;version&gt;2.7.15&lt;/version&gt;
+        &lt;exclusions&gt;
+            &lt;exclusion&gt;
+                &lt;groupId&gt;org.slf4j&lt;/groupId&gt;
+                &lt;artifactId&gt;slf4j-api&lt;/artifactId&gt;
+            &lt;/exclusion&gt;
+            &lt;exclusion&gt;
+                &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+                &lt;artifactId&gt;spring-boot-starter-logging&lt;/artifactId&gt;
+            &lt;/exclusion&gt;
+        &lt;/exclusions&gt;
+    &lt;/dependency&gt;
+
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.projectlombok&lt;/groupId&gt;
+        &lt;artifactId&gt;lombok&lt;/artifactId&gt;
+        &lt;version&gt;1.18.34&lt;/version&gt;
+    &lt;/dependency&gt;
+
+    &lt;dependency&gt;
+        &lt;groupId&gt;mysql&lt;/groupId&gt;
+        &lt;artifactId&gt;mysql-connector-java&lt;/artifactId&gt;
+        &lt;version&gt;8.0.30&lt;/version&gt;
+    &lt;/dependency&gt;
+
+    &lt;dependency&gt;
+        &lt;groupId&gt;com.baomidou&lt;/groupId&gt;
+        &lt;artifactId&gt;mybatis-plus-boot-starter&lt;/artifactId&gt;
+        &lt;version&gt;3.5.5&lt;/version&gt;
+        &lt;exclusions&gt;
+            &lt;exclusion&gt;
+                &lt;groupId&gt;org.slf4j&lt;/groupId&gt;
+                &lt;artifactId&gt;slf4j-api&lt;/artifactId&gt;
+            &lt;/exclusion&gt;
+        &lt;/exclusions&gt;
+    &lt;/dependency&gt;
+
+    &lt;dependency&gt;
+        &lt;groupId&gt;com.github.xiaoymin&lt;/groupId&gt;
+        &lt;artifactId&gt;knife4j-openapi2-spring-boot-starter&lt;/artifactId&gt;
+        &lt;version&gt;4.2.0&lt;/version&gt;
+    &lt;/dependency&gt;
+
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.apache.shardingsphere&lt;/groupId&gt;
+        &lt;artifactId&gt;sharding-jdbc-spring-boot-starter&lt;/artifactId&gt;
+        &lt;version&gt;4.1.1&lt;/version&gt;
+    &lt;/dependency&gt;
+
+
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-logging&lt;/artifactId&gt;
+        &lt;version&gt;2.7.15&lt;/version&gt;
+    &lt;/dependency&gt;
+&lt;/dependencies&gt;
+
+&lt;properties&gt;
+    &lt;maven.compiler.source&gt;17&lt;/maven.compiler.source&gt;
+    &lt;maven.compiler.target&gt;17&lt;/maven.compiler.target&gt;
+    &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
+&lt;/properties&gt;
+```
+
+`yaml`配置
+
+```yaml
+server:
+  port: 8888
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+
+spring:
+  # sharding-jdbc 配置
+  shardingsphere:
+    datasource:
+      names: m1
+      m1:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: jdbc:mysql://localhost:3306/sharding_jdbc_demo?serverTimezone=UTC
+        username: root
+        password: pubgM666
+    sharding:
+      tables:
+        t_order:
+          actual-data-nodes: m1.t_order_$-&gt;{1..2}
+          table-strategy:
+            inline:
+              sharding-column: id
+              algorithm-expression: t_order_$-&gt;{id % 2 + 1}
+          key-generator:
+            column: id
+            type: SNOWFLAKE
+            props:
+              worker:
+                id: 100
+              max:
+                tolerate:
+                  time:
+                    difference:
+                      milliseconds: 20
+```
+
+**细节**
+
+1. 雪花算法生成的字段,在insert时,需要自定义`sql`,将次字段从`sql`插入字段中去除:
+
+   &gt; 比如:
+   &gt;
+   &gt; 定义id字段为雪花算法自动生成,则`insert sql`为:
+   &gt;
+   &gt; ```java
+   &gt; @Insert('insert into t_order(product_id, amount, buyer_id, create_date, status, pay_time) values(#{productId}, #{amount}, #{buyerId}, #{createDate}, #{status}, #{payTime})')
+   &gt;  int insert(TOrder tOrder);
+   &gt; ```
+
+2. 依赖不能导错,`sharding-jdbc`依赖:
+
+   ```xml
+   &lt;dependency&gt;
+       &lt;groupId&gt;org.apache.shardingsphere&lt;/groupId&gt;
+       &lt;artifactId&gt;sharding-jdbc-spring-boot-starter&lt;/artifactId&gt;
+       &lt;version&gt;4.1.1&lt;/version&gt;
+   &lt;/dependency&gt;
+   ```
+
+
+###### 碰到的bug
+
+1. `sharding-jdbc-spring-boot-starter`,无法解析`LocalDateTime`以及`LocalDate`
+
+   &gt; 修复: 
+   &gt;
+   &gt; - 依赖升级
+   &gt;
+   &gt; ```xml
+   &gt; &lt;dependency&gt;
+   &gt;     &lt;groupId&gt;org.apache.shardingsphere&lt;/groupId&gt;
+   &gt;     &lt;artifactId&gt;shardingsphere-jdbc-core-spring-boot-starter&lt;/artifactId&gt;
+   &gt;     &lt;version&gt;5.2.1&lt;/version&gt;
+   &gt;     &lt;exclusions&gt;
+   &gt;         &lt;exclusion&gt;
+   &gt;             &lt;groupId&gt;org.yaml&lt;/groupId&gt;
+   &gt;             &lt;artifactId&gt;snakeyaml&lt;/artifactId&gt;
+   &gt;         &lt;/exclusion&gt;
+   &gt;     &lt;/exclusions&gt;
+   &gt; &lt;/dependency&gt;
+   &gt; ```
+   &gt;
+   &gt; - `5.x.x`版本yml配置不同,更改为:
+   &gt;
+   &gt; ```yaml
+   &gt; spring:
+   &gt;   shardingsphere:
+   &gt;     datasource:
+   &gt;       names: m1
+   &gt;       m1:
+   &gt;         type: com.zaxxer.hikari.HikariDataSource
+   &gt;         driver-class-name: com.mysql.cj.jdbc.Driver
+   &gt;         jdbc-url: jdbc:mysql://localhost:3306/sharding_jdbc_demo?serverTimezone=UTC
+   &gt;         username: root
+   &gt;         password: pubgM666
+   &gt; 
+   &gt;     rules:
+   &gt;       sharding:
+   &gt;         tables:
+   &gt;           t_order:
+   &gt;             actual-data-nodes: m1.t_order_$-&gt;{1..2}
+   &gt;             table-strategy:
+   &gt;               standard:
+   &gt;                 sharding-column: id
+   &gt;                 sharding-algorithm-name: t_order_inline
+   &gt;             key-generate-strategy:
+   &gt;               column: id
+   &gt;               key-generator-name: snowflake
+   &gt; 
+   &gt;         sharding-algorithms:
+   &gt;           t_order_inline:
+   &gt;             type: INLINE
+   &gt;             props:
+   &gt;               algorithm-expression: t_order_$-&gt;{id % 2 + 1}
+   &gt; 
+   &gt;         key-generators:
+   &gt;           snowflake:
+   &gt;             type: SNOWFLAKE
+   &gt;             props:
+   &gt;               worker-id: 100
+   &gt;               max-tolerate-time-difference-milliseconds: 20
+   &gt; 
+   &gt;     props:
+   &gt;       sql-show: true   # 开启SQL打印，方便调试
+   &gt; ```
+
+2. `mybatis-plus`与`sharding-jdbc`的不兼容
+
+   &gt;  解决: `sql`都使用`mapper`方式定义,不使用`mybatis-plus`
+
+
+#####  水平分库demo
+
+**`yml`配置:**
+
+```yaml
+spring:
+  shardingsphere:
+    datasource:
+      names: m1, m2
+      m1:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: jdbc:mysql://localhost:3306/sharding_jdbc_demo?serverTimezone=UTC
+        username: root
+        password: pubgM666
+      m2:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: jdbc:mysql://localhost:3306/sharding_jdbc_demo2?serverTimezone=UTC
+        username: root
+        password: pubgM666
+
+    rules:
+      sharding:
+        tables:
+          t_order:
+            actual-data-nodes: m$-&gt;{1..2}.t_order_$-&gt;{1..2}
+            database-strategy:
+              standard:
+                sharding-column: product_id
+                sharding-algorithm-name: t_order_database_inline
+            table-strategy:
+              standard:
+                sharding-column: id
+                sharding-algorithm-name: t_order_inline
+            key-generate-strategy:
+              column: id
+              key-generator-name: snowflake
+
+        sharding-algorithms:
+          t_order_inline:
+            type: INLINE
+            props:
+              algorithm-expression: t_order_$-&gt;{id % 2 + 1}
+          t_order_database_inline:
+            type: INLINE
+            props:
+              algorithm-expression: m$-&gt;{product_id % 2 + 1}
+
+        key-generators:
+          snowflake:
+            type: SNOWFLAKE
+            props:
+              worker-id: 100
+              max-tolerate-time-difference-milliseconds: 20
+
+    props:
+      sql-show: true   # 开启SQL打印，方便调试
+```
+
+
+
+##### 垂直分库
+
+**数据库准备**
+
+```sql
+create database sharding_jdbc_userdb;
+
+create table `user`(
+	`id` bigint auto_increment primary key comment 'id,主键',
+    `username` varchar(16) not null comment '用户名',
+    `encoded_password` varchar(256) not null comment '加密后的密码',
+    `salt` char(16) not null comment '随机盐',
+    `create_date` datetime not null comment '创建时间'
+)engine=innodb default charset=utf8mb4 comment='用户表';
+```
+
+
+
+##### 广播表
+
+若垂直分库后,部分库都需要对某个表join,并且此表数据读u多写少,可以将其作为为公告表
+
+```sql
+create table common(
+	`id` bigint primary key auto_increment comment '主键',
+    `name` varchar(32) null comment '名字'
+)engine=innodb default charset=utf8mb4 comment='公共表';
+```
+
+**`yml`配置:**
+
+```yaml
+spring:
+  shardingsphere:
+    rules:
+      sharding:
+        # 广播表
+        broadcast-tables:
+          common
+```
+
+##### sharding-jdbc读写分离
+
+&gt; `sharding-jdbc`根据`sql`语义,将写操作路由至`master`,将读操作路由至`slave`.提供透明化读写操作,像使用一个数据库一样使用主从数据库集群.
+&gt;
+&gt; ![image-20250429231159360](http://192.168.1.101:9000/kijjqvbsoduu/imgs/image-20250429231159431.png)
+
+`yaml`配置
+
+```yaml
+    rules:
+      readwrite-splitting:
+        data-sources:
+          m0_group:
+            static-strategy:
+              write-data-source-name: m0
+              read-data-source-names:
+                - s0
+            load-balancer-name: round_robin
+        load-balancers:
+          round_robin:
+            type: ROUND_ROBIN
+      sharding:
+        # 广播表
+        broadcast-tables:
+          common
+        tables:
+          user:
+            actual-data-nodes: m0_group.user
+```
+
+##### 实践
+
+**描述:**
+
+以商品为例,进行实践.
+
+###### 数据库设计
+
+&gt;  *entity:*
+&gt;
+&gt;  - 商品
+&gt;  - 店铺
+&gt;  - 地理区域
+&gt;
+&gt;  *垂直分库:*
+&gt;
+&gt;  将商品以及店铺划分到product_db,store_db
+&gt;
+&gt;  *垂直分表:*
+&gt;
+&gt;  将商品信息划分为product_info,product_desc
+&gt;
+&gt;  *广播表:*
+&gt;
+&gt;  region
+&gt;
+&gt;  *水平分库:*
+&gt;
+&gt;  将product_db根据store_id分库
+&gt;
+&gt;  *水平分表:*
+&gt;
+&gt;  将product_info根据product_id分表
+
+###### sql准备
+
+product_info
+
+```sql
+create database product_db_1;
+create database product_db_2;
+
+create table product_info_1(
+	`id` bigint primary key comment '商品id',
+    `store_id` bigint not null comment '所属店铺id',
+    `name` varchar(64) not null comment '商品名称',
+    `specification` varchar(8) not null comment '规格',
+    `source_place` varchar(16) null comment '产地',
+    `price` decimal not null comment '价格',
+    `pic_url` varchar(200) not null comment '图片url'
+) engine=innodb default charset=utf8mb4 comment='商品信息表';
+```
+
+product_desc
+
+```sql
+create table product_desc_1(
+	`id` bigint auto_increment primary key comment 'id',
+    `product_id` bigint not null comment '商品id',
+    `store_id` bigint not null comment '店铺id',
+    `desc` text not null comment '商品描述'
+) engine=innodb default charset=utf8mb4 comment '商品描述表';
+```
+
+store
+
+```sql
+create databse store_db;
+
+create table store(
+	`id` bigint primary key auto_increment comment '店铺id',
+    `name` varchar(32) not null comment '店铺名称',
+    `score` float null default 0 comment '店铺评分',
+    `source_place_id` bigint not null comment '店铺所在地'
+) engine=innodb default charset=utf8mb4 comment '店铺信息表';
+```
+
+region
+
+```sql
+create table region(
+	`id` bigint primary key auto_increment comment 'id',
+    `code` bigint not null comment '地域编码',
+    `name` varchar(32) not null comment '地理区域名称',
+    `level` int not null comment '级别,省:1 市:2 县:3 镇:4',
+    `parent` bigint null comment '上级地理区域'
+) engine=innodb default charset=utf8mb4 comment '地域信息表';
+```
+
+。</description><guid isPermaLink="true">https://iamdurant.github.io/post/sharding-jdbc-fen-ku-fen-biao.html</guid><pubDate>Fri, 09 May 2025 21:52:35 +0000</pubDate></item><item><title>LIS优化(nlogn)</title><link>https://iamdurant.github.io/post/LIS-you-hua-%28nlogn%29.html</link><description>**示例：**$[3,1,5,6,4,2]$
 
 **定义：**$f[i]$定义为长度为$i$的子序列右端点最小值
 
@@ -58,7 +536,7 @@ $i=5$：
 
 2. 埃氏筛
 
-   **[详解](https://zh.wikipedia.org/wiki/%E5%9F%83%E6%8B%89%E6%89%98%E6%96%AF%E7%89%B9%E5%B0%BC%E7%AD%9B%E6%B3%95)**
+   **[[详解](https://zh.wikipedia.org/wiki/%E5%9F%83%E6%8B%89%E6%89%98%E6%96%AF%E7%89%B9%E5%B0%BC%E7%AD%9B%E6%B3%95)](https://zh.wikipedia.org/wiki/%E5%9F%83%E6%8B%89%E6%89%98%E6%96%AF%E7%89%B9%E5%B0%BC%E7%AD%9B%E6%B3%95)**
 
    ```java
    /***
@@ -82,6 +560,22 @@ $i=5$：
    ```
 
 3. 欧拉筛
+
+   ```java
+   static List&lt;Integer&gt; ps = new ArrayList&lt;&gt;();
+   static boolean[] b = new boolean[10001];
+   static {
+       b[0] = b[1] = true;
+       for(int i = 2;i &lt;= 10000;i++) {
+           if(!b[i]) ps.add(i);
+           for(int p : ps) {
+               if(i * p &gt; 10000) break;
+               b[i * p] = true;
+               if(i % p == 0) break;
+           }
+       }
+   }
+   ```
 
 4. Miller-Rabin。</description><guid isPermaLink="true">https://iamdurant.github.io/post/su-shu-pan-ding.html</guid><pubDate>Tue, 18 Mar 2025 07:29:41 +0000</pubDate></item><item><title>rabbitmq_spring_amqp</title><link>https://iamdurant.github.io/post/rabbitmq_spring_amqp.html</link><description>##### 依赖
 
