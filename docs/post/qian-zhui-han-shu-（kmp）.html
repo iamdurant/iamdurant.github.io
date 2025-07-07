@@ -332,7 +332,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <p>原理：</p>
 <blockquote>
 <p>求<code class="notranslate">pi[i]</code>，<code class="notranslate">len = pi[i - 1]</code>，<code class="notranslate">len</code>为<code class="notranslate">c[i - 1]</code>的相等真前后缀长度，若<code class="notranslate">s[len] != s[i]</code>，则减少，直到<code class="notranslate">0</code>。那么如何快速求得小于<code class="notranslate">len</code>的最长相等真前后缀长度？如图所示：</p>
-<p><a target="_blank" rel="noopener noreferrer" href="https://github.com/user-attachments/assets/d114d604-c78f-4e12-9b7c-a44852d7e2ad"><img src="https://github.com/user-attachments/assets/d114d604-c78f-4e12-9b7c-a44852d7e2ad" alt="kmp" style="max-width: 100%; height: auto;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="https://github.com/user-attachments/assets/d114d604-c78f-4e12-9b7c-a44852d7e2ad"><img src="https://github.com/user-attachments/assets/d114d604-c78f-4e12-9b7c-a44852d7e2ad" alt="kmp" style="max-width: 100%;"></a></p>
 <p>因为：<code class="notranslate">s[0...j-1] = s[i-j+1...i] = s[n[i]-j...n[i]-1]</code></p>
 <p>所以：下一个最长相等真前后缀 = <code class="notranslate">pi[len - 1]</code></p>
 </blockquote>
