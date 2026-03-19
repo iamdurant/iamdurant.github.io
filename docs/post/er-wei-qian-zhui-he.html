@@ -14,13 +14,13 @@
 - 方法一：对矩阵的每一行做前缀和，求子矩阵元素和时还需要遍历每一行，并不能做到O(1)的查询时间
 
 - 方法二：预处理二维矩阵前缀和，将每次查询优化到O(1)
-![原理图](https://pic.leetcode.cn/1692152740-dSPisw-matrix-sum.png)。">
+![原理图](https://pic.leetcode.cn/1765887873-gHCBKd-lc304-c.png)。">
 <meta property="og:title" content="二维前缀和">
 <meta property="og:description" content="求矩阵的子矩阵和
 - 方法一：对矩阵的每一行做前缀和，求子矩阵元素和时还需要遍历每一行，并不能做到O(1)的查询时间
 
 - 方法二：预处理二维矩阵前缀和，将每次查询优化到O(1)
-![原理图](https://pic.leetcode.cn/1692152740-dSPisw-matrix-sum.png)。">
+![原理图](https://pic.leetcode.cn/1765887873-gHCBKd-lc304-c.png)。">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://iamdurant.github.io/post/er-wei-qian-zhui-he.html">
 <meta property="og:image" content="https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1730782842.png?x-oss-process=image%2Fformat%2Cwebp">
@@ -88,7 +88,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 </li>
 <li>
 <p>方法二：预处理二维矩阵前缀和，将每次查询优化到O(1)<br>
-<a target="_blank" rel="noopener noreferrer nofollow" href="https://camo.githubusercontent.com/b1d3e4842b50f1f6347f7db0172591c39df3eb2ebbad23a9f4b0fdea9f11bd1e/68747470733a2f2f7069632e6c656574636f64652e636e2f313639323135323734302d6453506973772d6d61747269782d73756d2e706e67"><img src="https://camo.githubusercontent.com/b1d3e4842b50f1f6347f7db0172591c39df3eb2ebbad23a9f4b0fdea9f11bd1e/68747470733a2f2f7069632e6c656574636f64652e636e2f313639323135323734302d6453506973772d6d61747269782d73756d2e706e67" alt="原理图" data-canonical-src="https://pic.leetcode.cn/1692152740-dSPisw-matrix-sum.png" style="max-width: 100%;"></a></p>
+<a target="_blank" rel="noopener noreferrer nofollow" href="https://camo.githubusercontent.com/634bebdb717df7f979672abf30602fb3dd59b64b1e265d11a5bf7e9211cdc8d8/68747470733a2f2f7069632e6c656574636f64652e636e2f313736353838373837332d674843424b642d6c633330342d632e706e67"><img src="https://camo.githubusercontent.com/634bebdb717df7f979672abf30602fb3dd59b64b1e265d11a5bf7e9211cdc8d8/68747470733a2f2f7069632e6c656574636f64652e636e2f313736353838373837332d674843424b642d6c633330342d632e706e67" alt="原理图" data-canonical-src="https://pic.leetcode.cn/1765887873-gHCBKd-lc304-c.png" style="max-width: 100%;"></a></p>
 </li>
 </ul></div>
 <div style="font-size:small;margin-top:8px;float:right;">转载请注明出处</div>
@@ -110,7 +110,7 @@ if("06/19/2024"!=""){
     var startSite=new Date("06/19/2024");
     var diff=now.getTime()-startSite.getTime();
     var diffDay=Math.floor(diff/(1000*60*60*24));
-    document.getElementById("runday").innerHTML="网站运行"+diffDay+"天"+" • ";
+    document.getElementById("runday").innerHTML="网站运行 "+diffDay+" 天"+" • ";
 }
 </script></div>
 </body>
@@ -155,6 +155,7 @@ document.getElementById("pathIssue").setAttribute("d",IconList["github"]);
 function openComments(){
     cm=document.getElementById("comments");
     cmButton=document.getElementById("cmButton");
+    cmButton.disabled=true;
     cmButton.innerHTML="loading";
     span=document.createElement("span");
     span.setAttribute("class","AnimatedEllipsis");

@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>jasper</title><link>https://iamdurant.github.io</link><description>make programming great again</description><copyright>jasper</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1730782842.png?x-oss-process=image%2Fformat%2Cwebp</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Fri, 01 Aug 2025 09:31:35 +0000</lastBuildDate><managingEditor>jasper</managingEditor><ttl>60</ttl><webMaster>jasper</webMaster><item><title>辗转相除法</title><link>https://iamdurant.github.io/post/zhan-zhuan-xiang-chu-fa.html</link><description>### 算法步骤: (Know-How)
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>jasper</title><link>https://iamdurant.github.io</link><description>make programming great again</description><copyright>jasper</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1730782842.png?x-oss-process=image%2Fformat%2Cwebp</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Thu, 19 Mar 2026 15:10:28 +0000</lastBuildDate><managingEditor>jasper</managingEditor><ttl>60</ttl><webMaster>jasper</webMaster><item><title>辗转相除法</title><link>https://iamdurant.github.io/post/zhan-zhuan-xiang-chu-fa.html</link><description>### 算法步骤: (Know-How)
 
 1. 设有两个正整数a和b，且a &gt; b。</description><guid isPermaLink="true">https://iamdurant.github.io/post/zhan-zhuan-xiang-chu-fa.html</guid><pubDate>Fri, 01 Aug 2025 09:31:02 +0000</pubDate></item><item><title>mysql主从配置</title><link>https://iamdurant.github.io/post/mysql-zhu-cong-pei-zhi.html</link><description>##### 一主多从
 
@@ -2530,11 +2530,11 @@ public boolean carPooling(int[][] trips, int capacity) {&#13;
     - 去重&#13;
     - 重新编号&#13;
 &#13;
-。</description><guid isPermaLink="true">https://iamdurant.github.io/post/cha-fen-shu-zu-%EF%BC%88-yi-wei-%E3%80%81-er-wei-%EF%BC%89.html</guid><pubDate>Sat, 14 Sep 2024 14:31:36 +0000</pubDate></item><item><title>二维前缀和</title><link>https://iamdurant.github.io/post/er-wei-qian-zhui-he.html</link><description>求矩阵的子矩阵和&#13;
-- 方法一：对矩阵的每一行做前缀和，求子矩阵元素和时还需要遍历每一行，并不能做到O(1)的查询时间&#13;
-&#13;
-- 方法二：预处理二维矩阵前缀和，将每次查询优化到O(1)&#13;
-![原理图](https://pic.leetcode.cn/1692152740-dSPisw-matrix-sum.png)。</description><guid isPermaLink="true">https://iamdurant.github.io/post/er-wei-qian-zhui-he.html</guid><pubDate>Fri, 13 Sep 2024 13:52:47 +0000</pubDate></item><item><title>位运算</title><link>https://iamdurant.github.io/post/wei-yun-suan.html</link><description>#### n &amp; n - 1&#13;
+。</description><guid isPermaLink="true">https://iamdurant.github.io/post/cha-fen-shu-zu-%EF%BC%88-yi-wei-%E3%80%81-er-wei-%EF%BC%89.html</guid><pubDate>Sat, 14 Sep 2024 14:31:36 +0000</pubDate></item><item><title>二维前缀和</title><link>https://iamdurant.github.io/post/er-wei-qian-zhui-he.html</link><description>求矩阵的子矩阵和
+- 方法一：对矩阵的每一行做前缀和，求子矩阵元素和时还需要遍历每一行，并不能做到O(1)的查询时间
+
+- 方法二：预处理二维矩阵前缀和，将每次查询优化到O(1)
+![原理图](https://pic.leetcode.cn/1765887873-gHCBKd-lc304-c.png)。</description><guid isPermaLink="true">https://iamdurant.github.io/post/er-wei-qian-zhui-he.html</guid><pubDate>Fri, 13 Sep 2024 13:52:47 +0000</pubDate></item><item><title>位运算</title><link>https://iamdurant.github.io/post/wei-yun-suan.html</link><description>#### n &amp; n - 1&#13;
 `n &amp; n - 1`  n减去最低位的2的幂&#13;
 &#13;
 #### n &amp; -n&#13;
