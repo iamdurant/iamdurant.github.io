@@ -1,5 +1,60 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>jasper</title><link>https://iamdurant.github.io</link><description>make programming great again</description><copyright>jasper</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1730782842.png?x-oss-process=image%2Fformat%2Cwebp</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Thu, 19 Mar 2026 15:10:28 +0000</lastBuildDate><managingEditor>jasper</managingEditor><ttl>60</ttl><webMaster>jasper</webMaster><item><title>辗转相除法</title><link>https://iamdurant.github.io/post/zhan-zhuan-xiang-chu-fa.html</link><description>### 算法步骤: (Know-How)
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>jasper</title><link>https://iamdurant.github.io</link><description>make programming great again</description><copyright>jasper</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://assets.leetcode.cn/aliyun-lc-upload/users/tender-satoshino0/avatar_1730782842.png?x-oss-process=image%2Fformat%2Cwebp</url><title>avatar</title><link>https://iamdurant.github.io</link></image><lastBuildDate>Sat, 28 Mar 2026 21:03:33 +0000</lastBuildDate><managingEditor>jasper</managingEditor><ttl>60</ttl><webMaster>jasper</webMaster><item><title>拓扑排序</title><link>https://iamdurant.github.io/post/tuo-pu-pai-xu.html</link><description>[原理](https://jingsam.github.io/2020/08/11/topological-sort.html)
+
+##### kahn实现
+
+- 采用入度，以循环迭代方式实现
+
+##### 算法逻辑
+
+- 使用队列记录indegree为0的节点
+- 依次出队，遍历更新其outdegree节点，若其indegree为0,则入队
+- 最后，若存在环，则idx &lt; n
+
+```java
+int[] topoSort(int n, int[][] edges) {
+    List&lt;List&lt;Integer&gt;&gt; graph = new ArrayList&lt;&gt;();
+    for(int i = 0;i &lt; n;i++) {
+        graph.add(new ArrayList&lt;&gt;());
+    }
+
+    int[] indegree = new int[n];
+    for(int[] e : edges) {
+        graph.get(e[0]).add(e[1]);
+        indegree[e[1]]++;
+    }
+
+    Queue&lt;Integer&gt; q = new ArrayDeque&lt;&gt;();
+    for(int i = 0;i &lt; n;i++) {
+        if(indegree[i] == 0) q.offer(i);
+    }
+
+    int[] ans = new int[n];
+    int idx = 0;
+    while(!q.isEmpty()) {
+        int c = q.poll();
+        ans[idx++] = c;
+        for(int next : graph.get(c)) {
+            indegree[next]--;
+            if(indegree[next] == 0) q.offer(next);
+        }
+    }
+
+    if(idx &lt; n) return new int[]{};
+    return ans;
+}
+```
+
+
+
+##### dfs实现(未学)
+
+- 采用出度，以递归实现
+
+```java
+```
+
+。</description><guid isPermaLink="true">https://iamdurant.github.io/post/tuo-pu-pai-xu.html</guid><pubDate>Sat, 28 Mar 2026 21:03:05 +0000</pubDate></item><item><title>辗转相除法</title><link>https://iamdurant.github.io/post/zhan-zhuan-xiang-chu-fa.html</link><description>### 算法步骤: (Know-How)
 
 1. 设有两个正整数a和b，且a &gt; b。</description><guid isPermaLink="true">https://iamdurant.github.io/post/zhan-zhuan-xiang-chu-fa.html</guid><pubDate>Fri, 01 Aug 2025 09:31:02 +0000</pubDate></item><item><title>mysql主从配置</title><link>https://iamdurant.github.io/post/mysql-zhu-cong-pei-zhi.html</link><description>##### 一主多从
 
